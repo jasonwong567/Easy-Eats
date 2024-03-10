@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <h1>
+            Hello world
+        </h1>
+        #restaurant = input("What restaurant are you eating at?")
+allergens = ["dairy", "peanuts" "shellfish", "egg","wheat"]
+
+dairy_free = ["Grilled Chicken Sandwich", "Chick Fil A Waffle Potato Fries", "Grilled Nuggets", "ChickFilA Waffle Fries","Fruit Cup" ]
+egg_free = ["Chick Fil A Waffle Potato Fries", "Grilled Nuggets","Fruit Cups"]
+wheat_free = ["Chick Fil A Waffle Potato Fries","Grilled Nuggets","Fruit Cup"]
+peanut_free = ["you can have anything on the ChickFila Menu!"]
+shellfish_free = ["You can have anything on the Chickfila Menu!"]
+
+
+def main():
+    get_user_allergy()
+    dairy_allergy()
+    egg_allergy()
+
+def get_user_allergy():
+    global allergy
+    global list_allergy
+    list_allergy = []
+    number = int(input("how many allergies do you have from this list? (dairy, eggs)?"))
+    for x in range(number):
+    #Asks the user for their allergy and returns it.
+        allergy = input("Which allergies from the list(one at a time)? ")
+        list_allergy.append(allergy)
+    #print(list_allergy)
+    #return allergy
+def dairy_allergy():
+    exists_dairy= 'dairy' in list_allergy
+    if exists_dairy == True:
+        print("Things that are dairy free:", dairy_free)
+        print("\n")        
+    
+def egg_allergy():
+    exists_egg = 'egg' in list_allergy
+    if exists_egg == True:
+        print("Things that are egg free:",egg_free)
+        print("\n") 
+
+def wheat_allergy():
+    exists_wheat = 'wheat' in list_allergy
+    if exists_wheat == True:
+        print("Things that are wheat free:",wheat_free) 
+        print("\n") 
+def peanut_allergy():
+    exists_peanut = 'peanut' in list_allergy
+    if exists_peanut == True:
+        print("Things that are peanut free:",peanut_free)
+        print("\n") 
+def shellfish_allergy():
+    exists_shellfish = 'shellfish' in list_allergy
+    if exists_shellfish == True:
+        print("Things that are peanut free:", shellfish_free)
+        print("\n") 
+
+if (__name__ == '__main__'):
+    main()
+    </body>
+</html>
