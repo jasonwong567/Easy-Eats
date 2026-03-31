@@ -6,13 +6,11 @@
   <title>Easy Eats — Allergen Safety Assistant</title>
   <meta name="description" content="Your personal food allergen safety assistant. Scan ingredients, find safe restaurants, and manage your allergen profile.">
   <meta name="theme-color" content="#0b0e18">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0b0e18; overflow-x: hidden; }
     #root { min-height: 100vh; }
-    /* Loading screen */
-    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0e18; color: #fff; font-family: 'DM Sans', sans-serif; flex-direction: column; gap: 12px; }
+    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0e18; color: #fff; font-family: sans-serif; flex-direction: column; gap: 12px; }
     .app-loader .logo { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 32px; animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
   </style>
@@ -188,7 +186,7 @@ function runScan(text, ua) {
         if (c.includes(amb.p)) {
           const rel = amb.r.filter(a => ua.includes(a));
           if (rel.length > 0 || amb.r.length === 0) {
-            items.push({ingredient:c,status:"caution",allergen:rel.map(a=>AL.find(x=>x.id===a)?.label).filter(Boolean).join(", ")||"Cross-contamination",reason:amb.w});
+            items.push({ingredient:c,status:"caution",allergen:rel.map(a=>(AL.find(function(x){return x.id===a})||{}).label).filter(Boolean).join(", ")||"Cross-contamination",reason:amb.w});
             rel.forEach(a => cSet.add(a)); m = true; break;
           }
         }
@@ -197,7 +195,7 @@ function runScan(text, ua) {
     if (!m) items.push({ingredient:c,status:"safe",allergen:null,reason:"No match"});
   });
   let overall = "safe", summary = "";
-  if (dSet.size > 0) { overall = "danger"; summary = `Contains ${[...dSet].map(id=>AL.find(a=>a.id===id)?.label).join(", ")} allergens.`; }
+  if (dSet.size > 0) { overall = "danger"; summary = `Contains ${[...dSet].map(id=>(AL.find(function(a){return a.id===id})||{}).label).join(", ")} allergens.`; }
   else if (cSet.size > 0) { overall = "caution"; summary = "Some ingredients may contain hidden allergen derivatives."; }
   else summary = "No allergens detected for your profile.";
   return { overall, items, summary };
@@ -228,8 +226,7 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [users, setUsers] = useState({});
   const usersRef = useRef(users);
-  useEffect(() => {
-    // Load profile from localStorage usersRef.current = users; }, [users]);
+  useEffect(() => { usersRef.current = users; }, [users]);
   const [currentUser, setCurrentUser] = useState(null);
   const [prof, setProf] = useState(null);
 
@@ -266,7 +263,6 @@ function App() {
 
   // Load on mount
   useEffect(() => {
-    // Load profile from localStorage
     (() => {
       const u = loadUsers();
       setUsers(u);
@@ -283,11 +279,9 @@ function App() {
 
   // Save user profile - use refs to avoid stale closures
   const profRef = useRef(prof);
-  useEffect(() => {
-    // Load profile from localStorage profRef.current = prof; }, [prof]);
+  useEffect(() => { profRef.current = prof; }, [prof]);
   const currentUserRef = useRef(currentUser);
-  useEffect(() => {
-    // Load profile from localStorage currentUserRef.current = currentUser; }, [currentUser]);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const saveProf = (updates) => {
     const cur = currentUserRef.current;
@@ -408,12 +402,12 @@ function App() {
     } else if (prev && prev.fromPage === "histDetail") {
       nav("histDetail", true);
     } else {
-      nav(prev?.fromPage || "scanner");
+      nav((prev&&prev.fromPage) || "scanner");
     }
   };
 
   const chainScore = (chain) => {
-    if (!prof?.allergens?.length) return {safe:0,danger:0,pct:0};
+    if (!(prof&&prof.allergens&&prof.allergens.length)) return {safe:0,danger:0,pct:0};
     let safe=0,danger=0;
     chain.menu.forEach(item => { if (item.a.some(a => prof.allergens.includes(a))) danger++; else safe++; });
     return {safe,danger,pct:Math.round((safe/chain.menu.length)*100)};
@@ -544,13 +538,13 @@ function App() {
       const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
       const overpassData = await overpassRes.json();
 
-      if (!overpassData.elements?.length) return null;
+      if (!(overpassData.elements&&overpassData.elements.length)) return null;
 
       // Step 3: Match OSM results to our chain database
       const results = [];
       const seen = new Set(); // avoid duplicate locations
       overpassData.elements.forEach(el => {
-        const name = el.tags?.name;
+        const name = (el.tags&&el.tags.name);
         const chain = matchChain(name);
         if (!chain) return;
         
@@ -558,9 +552,9 @@ function App() {
         if (dist > 10) return;
         
         // Build address from OSM tags
-        const street = el.tags?.["addr:street"] || "";
-        const houseNum = el.tags?.["addr:housenumber"] || "";
-        const city = el.tags?.["addr:city"] || displayName;
+        const street = (el.tags&&el.tags["addr:street"]) || "";
+        const houseNum = (el.tags&&el.tags["addr:housenumber"]) || "";
+        const city = (el.tags&&el.tags["addr:city"]) || displayName;
         const addr = houseNum && street ? `${houseNum} ${street}, ${city}` : street ? `${street}, ${city}` : city;
         
         const locKey = `${chain.id}-${el.id}`;
@@ -626,7 +620,7 @@ function App() {
 
   // Photo upload handler
   const handlePhotoUpload = (e) => {
-    const file = e.target.files?.[0];
+    const file = (e.target.files&&e.target.files[0]);
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => { setPhotoPreview(ev.target.result); };
@@ -660,11 +654,11 @@ function App() {
 
   // Get safe product alternatives by category
   const getSafeAlternatives = (scannedLabel) => {
-    if (!prof?.allergens) return { products: [] };
+    if (!(prof&&prof.allergens)) return { products: [] };
     // Detect category from scanned label
     const lbl = (scannedLabel||"").toLowerCase();
     const scannedProduct = PRODUCTS.find(p => p.name.toLowerCase() === lbl);
-    const scannedCat = scannedProduct?.cat || null;
+    const scannedCat = (scannedProduct&&scannedProduct.cat) || null;
     const catKeywords = { cookie:["cookie","oreo","chips ahoy","nutter","enjoy life"], snack:["chip","cheeto","dorito","pretzel","cracker","pirate","tostito","lay"], bar:["bar","clif","kind","rxbar","gomacro"], spread:["butter","spread","nutella","skippy","sunbutter"] };
     let detectedCat = scannedCat;
     if (!detectedCat) {
@@ -760,7 +754,7 @@ function App() {
   );
 
   // ─── MAIN APP ───
-  const hist = prof?.history||[];
+  const hist = (prof&&prof.history)||[];
   const NavBtn = ({id,icon,label}) => {
     const active = pg===id||(pg==="results"&&id==="scanner")||(pg==="chain"&&id==="dining")||(pg==="histDetail"&&id==="home");
     return <button onClick={()=>nav(id)} style={{flex:1,padding:"8px 4px",borderRadius:"10px",background:active?S.pbg:"transparent",color:active?S.p:S.mut,cursor:"pointer",fontSize:"11px",fontWeight:500,fontFamily:S.f,border:active?"1px solid rgba(139,92,246,0.2)":"1px solid transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:"3px"}}><span style={{fontSize:"16px"}}>{icon}</span>{label}</button>;
@@ -774,7 +768,7 @@ function App() {
           <span style={{fontFamily:S.sf,fontSize:"17px",fontWeight:800,color:"#fff"}}>Easy Eats</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-          <div style={{display:"flex",gap:"2px",fontSize:"13px"}}>{prof.allergens.slice(0,4).map(id=><span key={id}>{AL.find(a=>a.id===id)?.icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center"}}>+{prof.allergens.length-4}</span>}</div>
+          <div style={{display:"flex",gap:"2px",fontSize:"13px"}}>{prof.allergens.slice(0,4).map(id=><span key={id}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center"}}>+{prof.allergens.length-4}</span>}</div>
           <div onClick={()=>nav("profile")} style={{width:"30px",height:"30px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:"#fff",cursor:"pointer"}}>{prof.name.charAt(0).toUpperCase()}</div>
         </div>
       </header>
@@ -842,8 +836,8 @@ function App() {
               </div>
             ))}
           </div>
-          {viewHist.items?.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"12px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✕ Flagged ({viewHist.items.filter(i=>i.status!=="safe").length})</div>}
-          {viewHist.items?.filter(i=>i.status!=="safe").map((item,i)=>(
+          {viewHist.items&&viewHist.items.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"12px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✕ Flagged ({viewHist.items.filter(i=>i.status!=="safe").length})</div>}
+          {viewHist.items&&viewHist.items.filter(i=>i.status!=="safe").map((item,i)=>(
             <div key={i} style={{padding:"11px 14px",marginBottom:"5px",borderRadius:"10px",background:sb(item.status),border:`1px solid ${sc(item.status)}22`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
               <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"5px",background:sc(item.status),flexShrink:0}} />
               <div style={{flex:1}}>
@@ -852,7 +846,7 @@ function App() {
               </div>
             </div>
           ))}
-          {viewHist.items?.filter(i=>i.status==="safe").length>0&&<>
+          {viewHist.items&&viewHist.items.filter(i=>i.status==="safe").length>0&&<>
             <div style={{fontSize:"12px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",margin:"12px 0 8px"}}>✓ Safe ({viewHist.items.filter(i=>i.status==="safe").length})</div>
             {viewHist.items.filter(i=>i.status==="safe").map((item,i)=>(
               <div key={i} style={{padding:"8px 14px",marginBottom:"3px",borderRadius:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)",fontSize:"12px",color:"rgba(255,255,255,0.5)",display:"flex",alignItems:"center",gap:"8px"}}><span style={{color:S.g}}>✓</span>{item.ingredient}</div>
@@ -1057,7 +1051,7 @@ function App() {
             {viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).map((m,i)=>(
               <div key={i} style={{padding:"12px 14px",marginBottom:"4px",borderRadius:"10px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.15)",display:"flex",alignItems:"center",gap:"10px"}}>
                 <span style={{color:S.g,fontSize:"14px"}}>✓</span>
-                <div><div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{m.name}</div>{m.a.length>0?<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>Contains: {m.a.map(a=>AL.find(x=>x.id===a)?.label).join(", ")}</div>:<div style={{fontSize:"10px",color:"rgba(34,197,94,0.6)",marginTop:"1px"}}>No common allergens</div>}</div>
+                <div><div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{m.name}</div>{m.a.length>0?<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>Contains: {m.a.map(a=>(AL.find(function(x){return x.id===a})||{}).label).join(", ")}</div>:<div style={{fontSize:"10px",color:"rgba(34,197,94,0.6)",marginTop:"1px"}}>No common allergens</div>}</div>
               </div>
             ))}
           </>}
@@ -1068,7 +1062,7 @@ function App() {
               return(<div key={i} style={{padding:"12px 14px",marginBottom:"4px",borderRadius:"10px",background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.12)",display:"flex",alignItems:"center",gap:"10px"}}>
                 <span style={{color:S.r,fontSize:"14px"}}>✕</span>
                 <div><div style={{fontWeight:600,fontSize:"13px",color:"rgba(255,255,255,0.6)"}}>{m.name}</div>
-                <div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{hits.map(a=><span key={a} style={{marginRight:"6px",padding:"1px 5px",background:"rgba(239,68,68,0.15)",borderRadius:"3px",color:"#fca5a5",fontSize:"9px"}}>{AL.find(x=>x.id===a)?.icon} {AL.find(x=>x.id===a)?.label}</span>)}</div></div>
+                <div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{hits.map(a=><span key={a} style={{marginRight:"6px",padding:"1px 5px",background:"rgba(239,68,68,0.15)",borderRadius:"3px",color:"#fca5a5",fontSize:"9px"}}>{(AL.find(function(x){return x.id===a})||{}).icon} {(AL.find(function(x){return x.id===a})||{}).label}</span>)}</div></div>
               </div>);
             })}
           </>}
@@ -1095,7 +1089,7 @@ function App() {
               }
             </div>
             {!editingAllergens?
-              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>{prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 10px",background:S.pbg,border:"1px solid rgba(139,92,246,0.3)",borderRadius:"8px",fontSize:"11px",color:"#c4b5fd"}}>{a?.icon} {a?.label}</span>;})}</div>:
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>{prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 10px",background:S.pbg,border:"1px solid rgba(139,92,246,0.3)",borderRadius:"8px",fontSize:"11px",color:"#c4b5fd"}}>{a&&a.icon} {a&&a.label}</span>;})}</div>:
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
                 {AL.map(a=>{const sel=editAllergens.includes(a.id);return(
                   <button key={a.id} onClick={()=>setEditAllergens(p=>sel?p.filter(x=>x!==a.id):[...p,a.id])}
@@ -1139,7 +1133,7 @@ function App() {
                   <div style={{fontSize:"16px",fontWeight:700,color:"#fff",marginBottom:"6px"}}>{prof.name}</div>
                   <div style={{fontSize:"12px",color:"rgba(255,255,255,0.6)",marginBottom:"8px"}}>I have the following food allergies:</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"10px"}}>
-                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"4px 10px",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",fontSize:"12px",color:"#fca5a5",fontWeight:600}}>{a?.icon} {a?.label}</span>;})}
+                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"4px 10px",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",fontSize:"12px",color:"#fca5a5",fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
                   </div>
                   {(prof.emergencyContact||prof.emergencyPhone)&&(
                     <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",paddingTop:"8px",marginTop:"4px"}}>
