@@ -673,9 +673,8 @@ function App() {
     setFoodResults([]);
     try {
       const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      if (data.error) throw new Error(data.error);
+      if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
       const hits = (data.hints || [])
         .map(h => ({
           label: h.food.label,
