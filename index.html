@@ -681,7 +681,7 @@ function App() {
           brand: h.food.brand || null,
           ingredients: h.food.ingredients || null,
         }))
-        .filter(h => h.ingredients && h.label && h.ingredients.trim().length > 10);
+        .filter(h => h.label);
       if (hits.length === 0) {
         // Retry with just the first word if multi-word query
         const words = q.split(" ");
@@ -690,7 +690,7 @@ function App() {
           searchFood(words[0]);
           return;
         }
-        setFoodError("No results found. Try a brand name like \"Lay's chips\" or \"Tyson nuggets\".");
+        setFoodError("No results found. Try a different search term.");
       } else {
         setFoodResults(hits.slice(0, 6));
       }
@@ -703,7 +703,11 @@ function App() {
   const pickFoodResult = (item) => {
     setFoodResults([]);
     setFoodQuery(item.label);
-    doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
+    if (item.ingredients) {
+      doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
+    } else {
+      setFoodError("No ingredient list available for this item — paste ingredients manually below.");
+    }
   };
 
   // Emergency card save
