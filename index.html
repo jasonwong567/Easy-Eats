@@ -664,7 +664,7 @@ function App() {
     } catch(e) { setCopied(false); }
   };
 
-  // Food search via Cloudflare Worker → Open Food Facts
+  // Food search via Cloudflare Worker → Edamam Food Database
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
@@ -676,11 +676,11 @@ function App() {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
-      const hits = (data.products || [])
-        .map(p => ({
-          label: p.product_name || q,
-          brand: p.brands || null,
-          ingredients: p.ingredients_text || null,
+      const hits = (data.hints || [])
+        .map(h => ({
+          label: h.food.label,
+          brand: h.food.brand || null,
+          ingredients: h.food.ingredients || null,
         }))
         .filter(h => h.ingredients && h.label && h.ingredients.trim().length > 10);
       if (hits.length === 0) {
