@@ -665,8 +665,8 @@ function App() {
   };
 
   // Food search via Cloudflare Worker → Open Food Facts
-  const searchFood = async () => {
-    const q = foodQuery.trim();
+  const searchFood = async (overrideQuery) => {
+    const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
     setFoodLoading(true);
     setFoodError("");
@@ -684,7 +684,14 @@ function App() {
         }))
         .filter(h => h.ingredients && h.label && h.ingredients.trim().length > 10);
       if (hits.length === 0) {
-        setFoodError("No results with ingredient data found. Try a more specific name or brand, or paste ingredients manually below.");
+        // Retry with just the first word if multi-word query
+        const words = q.split(" ");
+        if (words.length > 1 && !overrideQuery) {
+          setFoodLoading(false);
+          searchFood(words[0]);
+          return;
+        }
+        setFoodError("No results found. Try a brand name like \"Lay's chips\" or \"Tyson nuggets\".");
       } else {
         setFoodResults(hits.slice(0, 6));
       }
@@ -695,7 +702,6 @@ function App() {
   };
 
   const pickFoodResult = (item) => {
-    setTxt(item.ingredients);
     setFoodResults([]);
     setFoodQuery(item.label);
     doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
