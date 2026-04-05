@@ -696,7 +696,7 @@ function App() {
         setFoodResults(hits.slice(0, 6));
       }
     } catch(e) {
-      setFoodError("Couldn't reach the food database. Check your connection, or paste ingredients manually.");
+      setFoodError(`Error: ${e.message}`);
     }
     setFoodLoading(false);
   };
