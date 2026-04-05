@@ -684,11 +684,15 @@ function App() {
           ingredients: h.food.ingredients || null,
           category: h.food.categoryLabel || null,
         }))
-        .filter(h => h.ingredients);
       if (hits.length === 0) {
-        setFoodError("No ingredient data found for this food. Try a different name, or paste ingredients manually below.");
+        setFoodError("No results found. Try a more specific name.");
       } else {
-        setFoodResults(hits);
+        const withIng = hits.filter(h => h.ingredients);
+        if (withIng.length === 0) {
+          setFoodError("These are generic foods with no ingredient lists. Include a brand name — e.g. \"Tyson chicken nuggets\" not just \"chicken nuggets\".");
+        } else {
+          setFoodResults(withIng);
+        }
       }
     } catch(e) {
       setFoodError("Couldn't reach the food database. Make sure your Worker is deployed, or paste ingredients manually.");
@@ -961,7 +965,7 @@ function App() {
                 value={foodQuery}
                 onChange={e=>{setFoodQuery(e.target.value);if(foodError)setFoodError("");if(foodResults.length)setFoodResults([]);}}
                 onKeyDown={e=>e.key==="Enter"&&searchFood()}
-                placeholder="e.g. Cheetos, Greek yogurt, Cliff Bar..."
+                placeholder="e.g. Tyson chicken nuggets, Chobani Greek yogurt..."
                 style={{flex:1,padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}}
               />
               <button
@@ -988,7 +992,7 @@ function App() {
               </div>
             )}
             {!foodLoading&&foodResults.length===0&&!foodError&&(
-              <div style={{fontSize:"11px",color:S.mut}}>Powered by Edamam · searches millions of real food products</div>
+              <div style={{fontSize:"11px",color:S.mut}}>Tip: include a brand name for best results · Powered by Edamam</div>
             )}
           </div>
 
