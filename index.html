@@ -664,7 +664,7 @@ function App() {
     } catch(e) { setCopied(false); }
   };
 
-  // Food search via Cloudflare Worker → Edamam API
+  // Food search via Open Food Facts (free, no key, CORS-enabled)
   const searchFood = async () => {
     const q = foodQuery.trim();
     if (!q) return;
@@ -672,30 +672,24 @@ function App() {
     setFoodError("");
     setFoodResults([]);
     try {
-      const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
+      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&fields=product_name,brands,ingredients_text&page_size=10&lc=en`;
+      const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-      const hits = (data.hints || [])
-        .slice(0, 8)
-        .map(h => ({
-          label: h.food.label,
-          brand: h.food.brand || null,
-          ingredients: h.food.ingredients || null,
-          category: h.food.categoryLabel || null,
+      const hits = (data.products || [])
+        .map(p => ({
+          label: p.product_name || q,
+          brand: p.brands || null,
+          ingredients: p.ingredients_text || null,
         }))
+        .filter(h => h.ingredients && h.label && h.ingredients.trim().length > 10);
       if (hits.length === 0) {
-        setFoodError("No results found. Try a more specific name.");
+        setFoodError("No results with ingredient data found. Try a more specific name or brand, or paste ingredients manually below.");
       } else {
-        const withIng = hits.filter(h => h.ingredients);
-        if (withIng.length === 0) {
-          setFoodError("These are generic foods with no ingredient lists. Include a brand name — e.g. \"Tyson chicken nuggets\" not just \"chicken nuggets\".");
-        } else {
-          setFoodResults(withIng);
-        }
+        setFoodResults(hits.slice(0, 6));
       }
     } catch(e) {
-      setFoodError("Couldn't reach the food database. Make sure your Worker is deployed, or paste ingredients manually.");
+      setFoodError("Couldn't reach the food database. Check your connection, or paste ingredients manually.");
     }
     setFoodLoading(false);
   };
@@ -965,7 +959,7 @@ function App() {
                 value={foodQuery}
                 onChange={e=>{setFoodQuery(e.target.value);if(foodError)setFoodError("");if(foodResults.length)setFoodResults([]);}}
                 onKeyDown={e=>e.key==="Enter"&&searchFood()}
-                placeholder="e.g. Tyson chicken nuggets, Chobani Greek yogurt..."
+                placeholder="e.g. Lay's chips, Oreo, Chobani Greek yogurt..."
                 style={{flex:1,padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}}
               />
               <button
@@ -992,7 +986,7 @@ function App() {
               </div>
             )}
             {!foodLoading&&foodResults.length===0&&!foodError&&(
-              <div style={{fontSize:"11px",color:S.mut}}>Tip: include a brand name for best results · Powered by Edamam</div>
+              <div style={{fontSize:"11px",color:S.mut}}>Powered by Open Food Facts · 3M+ products worldwide</div>
             )}
           </div>
 
