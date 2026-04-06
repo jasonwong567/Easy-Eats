@@ -279,6 +279,11 @@ function App() {
   const [foodLoading, setFoodLoading] = useState(false);
   const [foodError, setFoodError] = useState("");
 
+  // OCR state
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState("");
+  const [ocrRateLimit, setOcrRateLimit] = useState(false);
+
   // Load on mount
   useEffect(() => {
     (() => {
@@ -636,12 +641,51 @@ function App() {
     setLocLoading(false);
   };
 
-  // Photo upload handler
+  // OCR rate limiter — max 5 per minute
+  const ocrTimestamps = useRef([]);
+  const checkOcrRateLimit = () => {
+    const now = Date.now();
+    ocrTimestamps.current = ocrTimestamps.current.filter(t => now - t < 60000);
+    if (ocrTimestamps.current.length >= 5) {
+      setOcrRateLimit(true);
+      setTimeout(() => setOcrRateLimit(false), 60000 - (now - ocrTimestamps.current[0]));
+      return false;
+    }
+    ocrTimestamps.current.push(now);
+    return true;
+  };
+
+  // Photo upload handler — sends to Claude Vision via Worker
   const handlePhotoUpload = (e) => {
-    const file = (e.target.files&&e.target.files[0]);
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => { setPhotoPreview(ev.target.result); };
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      setPhotoPreview(dataUrl);
+      setOcrError("");
+      setOcrRateLimit(false);
+      if (!checkOcrRateLimit()) return;
+      setOcrLoading(true);
+      try {
+        const base64 = dataUrl.split(",")[1];
+        const mediaType = file.type || "image/jpeg";
+        const resp = await fetch(`${WORKER_URL}/api/ocr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64, mediaType }),
+        });
+        const data = await resp.json();
+        if (data.error) {
+          setOcrError(data.error);
+        } else if (data.ingredients) {
+          setTxt(data.ingredients);
+        }
+      } catch(err) {
+        setOcrError("Couldn't read the photo. Try again or type the ingredients manually.");
+      }
+      setOcrLoading(false);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -664,7 +708,7 @@ function App() {
     } catch(e) { setCopied(false); }
   };
 
-  // Food search via Cloudflare Worker → Edamam Food Database
+  // Food search via Cloudflare Worker → Open Food Facts
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
@@ -673,15 +717,16 @@ function App() {
     setFoodResults([]);
     try {
       const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
-      const hits = (data.hints || [])
-        .map(h => ({
-          label: h.food.label,
-          brand: h.food.brand || null,
-          ingredients: h.food.ingredients || null,
+      if (data.error) throw new Error(data.error);
+      const hits = (data.products || [])
+        .map(p => ({
+          label: p.product_name || q,
+          brand: p.brands || null,
+          ingredients: p.ingredients_text || null,
         }))
-        .filter(h => h.label);
+        .filter(h => h.ingredients && h.label && h.ingredients.trim().length > 10);
       if (hits.length === 0) {
         // Retry with just the first word if multi-word query
         const words = q.split(" ");
@@ -690,12 +735,12 @@ function App() {
           searchFood(words[0]);
           return;
         }
-        setFoodError("No results found. Try a different search term.");
+        setFoodError("No results found. Try a brand name like \"Lay's chips\" or \"Tyson nuggets\".");
       } else {
         setFoodResults(hits.slice(0, 6));
       }
     } catch(e) {
-      setFoodError(`Error: ${e.message}`);
+      setFoodError("Couldn't reach the food database. Check your connection, or paste ingredients manually.");
     }
     setFoodLoading(false);
   };
@@ -703,11 +748,7 @@ function App() {
   const pickFoodResult = (item) => {
     setFoodResults([]);
     setFoodQuery(item.label);
-    if (item.ingredients) {
-      doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
-    } else {
-      setFoodError("No ingredient list available for this item — paste ingredients manually below.");
-    }
+    doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
   };
 
   // Emergency card save
@@ -947,15 +988,19 @@ function App() {
             {photoPreview ? (
               <div style={{padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",textAlign:"center"}}>
                 <img src={photoPreview} alt="Label" style={{maxWidth:"100%",maxHeight:"160px",borderRadius:"8px",marginBottom:"8px"}} />
-                <div style={{fontSize:"11px",color:S.g,marginBottom:"6px"}}>✓ Photo uploaded — type the ingredients you see below</div>
-                <button onClick={()=>setPhotoPreview(null)} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
+                {ocrLoading&&<div style={{fontSize:"11px",color:S.p,marginBottom:"6px"}}>🤖 Reading label with AI...</div>}
+                {ocrRateLimit&&<div style={{fontSize:"11px",color:S.y,marginBottom:"6px"}}>⚠️ Limit of 5 photo scans per minute reached. Wait a moment and try again.</div>}
+                {ocrError&&<div style={{fontSize:"11px",color:S.r,marginBottom:"6px"}}>{ocrError}</div>}
+                {!ocrLoading&&!ocrError&&!ocrRateLimit&&txt&&<div style={{fontSize:"11px",color:S.g,marginBottom:"6px"}}>✓ Ingredients extracted — review below and tap Scan</div>}
+                {!ocrLoading&&!ocrError&&!ocrRateLimit&&!txt&&<div style={{fontSize:"11px",color:S.mut,marginBottom:"6px"}}>Photo uploaded — ingredients will appear below</div>}
+                <button onClick={()=>{setPhotoPreview(null);setOcrError("");setOcrRateLimit(false);}} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
               </div>
             ) : (
               <label style={{display:"block",padding:"16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer"}}>
                 <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{display:"none"}} />
                 <div style={{fontSize:"28px",marginBottom:"6px"}}>📷</div>
                 <div style={{fontSize:"13px",color:"rgba(255,255,255,0.5)"}}>Upload ingredient label photo</div>
-                <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>Take a photo or choose from gallery</div>
+                <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>AI will read the label automatically · 5 scans/min</div>
               </label>
             )}
           </div>
