@@ -662,10 +662,21 @@ function App() {
             return total === 0 || letters / total > 0.4;
           })
           .join(' ');
-        // Remove stray symbols and excess whitespace
+        // Remove stray symbols, units, and OCR artifacts
+        const validShort = new Set(['of','or','in','a','an','and','as','at','by','do','go','is','it','no','on','to','up','vs','with']);
         const extracted = filtered
-          .replace(/[|\\^~`@#$]/g, '')
+          .replace(/[|\\^~`@#$*_]/g, '')
           .replace(/\s*\d+\s*(?:mg|g|mcg|iu|%dv)\b/gi, '')
+          .replace(/\s{2,}/g, ' ')
+          .split(/\b/)
+          .filter(token => {
+            const t = token.trim();
+            if (!t) return true; // keep whitespace/punctuation tokens
+            if (/^[^a-zA-Z]+$/.test(t)) return true; // keep commas, parens etc
+            if (t.length <= 2 && !validShort.has(t.toLowerCase())) return false;
+            return true;
+          })
+          .join('')
           .replace(/\s{2,}/g, ' ')
           .trim();
         if (extracted) setTxt(extracted);
