@@ -273,6 +273,7 @@ function App() {
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [photoLabel, setPhotoLabel] = useState("");
   const [copied, setCopied] = useState(false);
 
   // Food search state (Edamam via Cloudflare Worker)
@@ -649,8 +650,11 @@ function App() {
       setOcrLoading(true);
       try {
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng');
-        const cleaned = text.replace(/[^\x20-\x7E\n]/g, '').trim();
-        if (cleaned) setTxt(cleaned);
+        const cleaned = text.replace(/[^\x20-\x7E\n]/g, '');
+        // Try to extract just the ingredients section
+        const match = cleaned.match(/ingredient[s]?\s*[:\-]?\s*([\s\S]+?)(?=\n\s*\n|\bnutrition\b|\bserving\b|\bcalories\b|\btotal fat\b|$)/i);
+        const extracted = match ? match[1].trim() : cleaned.trim();
+        if (extracted) setTxt(extracted);
       } catch(err) {
         console.error("OCR failed:", err);
       }
@@ -962,10 +966,16 @@ function App() {
               <div style={{padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",textAlign:"center"}}>
                 <img src={photoPreview} alt="Label" style={{maxWidth:"100%",maxHeight:"160px",borderRadius:"8px",marginBottom:"8px"}} />
                 {ocrLoading
-                  ? <div style={{fontSize:"11px",color:S.mut,marginBottom:"6px"}}>⏳ Reading ingredients from photo...</div>
-                  : <div style={{fontSize:"11px",color:S.g,marginBottom:"6px"}}>✓ Ingredients extracted — review below then scan</div>
+                  ? <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>⏳ Reading ingredients from photo...</div>
+                  : <div style={{fontSize:"11px",color:S.g,marginBottom:"8px"}}>✓ Ingredients extracted — review below then scan</div>
                 }
-                <button onClick={()=>{setPhotoPreview(null);setOcrLoading(false);}} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
+                <input
+                  value={photoLabel}
+                  onChange={e=>setPhotoLabel(e.target.value)}
+                  placeholder="Product name (e.g. Oreo, Tyson Nuggets)..."
+                  style={{width:"100%",padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"8px"}}
+                />
+                <button onClick={()=>{setPhotoPreview(null);setOcrLoading(false);setPhotoLabel("");}} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
               </div>
             ) : (
               <label style={{display:"block",padding:"16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer"}}>
@@ -1025,7 +1035,7 @@ function App() {
               <button key={p.name} onClick={()=>setTxt(p.ing)} style={{padding:"5px 10px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f}}>{p.icon} {p.name}</button>
             ))}
           </div>
-          <button onClick={()=>txt.trim()&&doScan(txt,"")} disabled={!txt.trim()}
+          <button onClick={()=>txt.trim()&&doScan(txt, photoLabel.trim() || "")} disabled={!txt.trim()}
             style={{width:"100%",marginTop:"14px",padding:"14px",background:txt.trim()?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:txt.trim()?"#fff":"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:txt.trim()?"pointer":"default",fontFamily:S.f}}>
             🔬 Scan for Allergens
           </button>
