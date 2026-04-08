@@ -651,8 +651,8 @@ function App() {
       try {
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng');
         const cleaned = text.replace(/[^\x20-\x7E\n]/g, '');
-        // Try to extract just the ingredients section
-        const match = cleaned.match(/ingredient[s]?\s*[:\-]?\s*([\s\S]+?)(?=\n\s*\n|\bnutrition\b|\bserving\b|\bcalories\b|\btotal fat\b|$)/i);
+        // Extract just the ingredients section, stopping at label footer/nutrition info
+        const match = cleaned.match(/ingredient[s]?\s*[:\-]?\s*([\s\S]+?)(?=\n\s*\n|\bnutrition\b|\bserving\b|\bcalories\b|\btotal fat\b|\bdistributed\b|\bmanufactured\b|\bproduced\b|\bpacked\b|\bimported\b|\bcontains\b|\ballergen\b|$)/i);
         const raw = match ? match[1] : cleaned;
         // Remove lines that are mostly numbers/symbols (nutrition label rows)
         const filtered = raw.split('\n')
@@ -662,7 +662,7 @@ function App() {
             return total === 0 || letters / total > 0.4;
           })
           .join(' ');
-        // Remove stray symbols, units, and OCR artifacts
+        // Remove stray symbols, units, and short OCR artifacts
         const validShort = new Set(['of','or','in','a','an','and','as','at','by','do','go','is','it','no','on','to','up','vs','with']);
         const extracted = filtered
           .replace(/[|\\^~`@#$*_]/g, '')
@@ -671,17 +671,33 @@ function App() {
           .split(/\b/)
           .filter(token => {
             const t = token.trim();
-            if (!t) return true; // keep whitespace/punctuation tokens
-            if (/^[^a-zA-Z]+$/.test(t)) return true; // keep commas, parens etc
+            if (!t) return true;
+            if (/^[^a-zA-Z]+$/.test(t)) return true;
             if (t.length <= 2 && !validShort.has(t.toLowerCase())) return false;
             return true;
           })
           .join('')
           .replace(/\s{2,}/g, ' ')
           .trim();
-        if (extracted) setTxt(extracted);
+        if (extracted) {
+          setTxt(extracted);
+          // Auto-fill product name: search Edamam with first ingredient word
+          const firstWord = extracted.split(/[\s,]/)[0];
+          if (firstWord && firstWord.length > 3) {
+            try {
+              const r = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(firstWord)}`);
+              const d = await r.json();
+              const hit = (d.hints || [])[0];
+              if (hit && hit.food && hit.food.label) setPhotoLabel(hit.food.label);
+              else setPhotoLabel("Scanned Label");
+            } catch(_) { setPhotoLabel("Scanned Label"); }
+          } else {
+            setPhotoLabel("Scanned Label");
+          }
+        }
       } catch(err) {
         console.error("OCR failed:", err);
+        setPhotoLabel("Scanned Label");
       }
       setOcrLoading(false);
     };
