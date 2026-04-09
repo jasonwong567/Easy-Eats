@@ -727,7 +727,10 @@ function App() {
         if (extracted) {
           setTxt(extracted);
           const realWords = extracted.split(/\s+/).filter(w => /^[a-zA-Z]{4,}$/.test(w));
-          setOcrBad(realWords.length < 5);
+          const commaCount = (extracted.match(/,/g) || []).length;
+          const commonIngredients = /\b(water|sugar|salt|flour|oil|milk|corn|soy|wheat|rice|starch|syrup|butter|cream|extract|vinegar|acid|natural|flavor|enriched|sodium|potassium|calcium|iron|vitamin)\b/i.test(extracted);
+          const isGood = realWords.length >= 8 && commaCount >= 3 && commonIngredients;
+          setOcrBad(!isGood);
         } else {
           setOcrBad(true);
         }
@@ -762,6 +765,15 @@ function App() {
 
   // Leaflet map — initialize/update when dining results are available
   useEffect(() => {
+    // Register global callback so Leaflet popup HTML can trigger in-app navigation
+    window._easyEatsNavChain = (locId) => {
+      const r = nearbyResults.find(x => x.locId === locId);
+      if (r) { setViewChain(r); nav("chain", true); }
+    };
+    return () => { delete window._easyEatsNavChain; };
+  }, [nearbyResults]);
+
+  useEffect(() => {
     if (pg !== "dining" || !locSet || !mapCenter || nearbyResults.length === 0) return;
     const timer = setTimeout(() => {
       if (!mapRef.current) return;
@@ -775,7 +787,7 @@ function App() {
         if (r.lat && r.lon) {
           const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
           L.marker([r.lat, r.lon]).addTo(map)
-            .bindPopup(`<div style="font-family:sans-serif;min-width:140px"><b style="font-size:13px">${r.name}</b><br/><span style="font-size:11px;color:#666">${r.address}</span><br/><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#7c3aed;text-decoration:none;font-weight:600">Open in Google Maps →</a></div>`);
+            .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b style="font-size:13px">${r.name}</b><br/><span style="font-size:11px;color:#666">${r.address}</span><br/><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><button onclick="window._easyEatsNavChain('${r.locId}')" style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;text-align:center">View Menu →</button><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#7c3aed;text-decoration:none;font-weight:600;text-align:center">Get Directions ↗</a></div></div>`);
         }
       });
       mapInstanceRef.current = map;
@@ -815,6 +827,7 @@ function App() {
     setFoodLoading(true);
     setFoodError("");
     setFoodResults([]);
+    setTxt("");
     try {
       const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
       const data = await resp.json();
@@ -847,10 +860,15 @@ function App() {
   const pickFoodResult = (item) => {
     setFoodResults([]);
     setFoodQuery(item.label);
+    const name = item.brand ? `${item.label} (${item.brand})` : item.label;
     if (item.ingredients) {
-      doScan(item.ingredients, item.brand ? `${item.label} (${item.brand})` : item.label);
+      doScan(item.ingredients, name);
     } else {
-      setFoodError("No ingredient list available for this item — paste ingredients manually below.");
+      // No ingredients from API — switch to manual tab so user can paste them
+      setTxt("");
+      setPhotoLabel(name);
+      setScannerTab("manual");
+      setFoodError("No ingredient list found for this item. Paste the ingredients from the label below and tap Scan.");
     }
   };
 
@@ -1004,10 +1022,14 @@ function App() {
         </div>}
 
         {/* ═══ HIST DETAIL ═══ */}
-        {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);return(<div>
+        {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const allergensChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div>
           <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back</button>
           <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>{viewHist.label}</h2>
-          <div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{new Date(viewHist.date).toLocaleString()}</div>
+          <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>{new Date(viewHist.date).toLocaleString()}</div>
+          {allergensChanged&&<div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"10px",padding:"10px 14px",marginBottom:"12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"10px"}}>
+            <div style={{fontSize:"12px",color:"#fcd34d"}}>⚠️ Your allergen profile changed since this scan</div>
+            <button onClick={()=>{nav("scanner",true);setScannerTab("manual");setTxt(viewHist.ingredients);setPhotoLabel(viewHist.label);}} style={{background:"rgba(245,158,11,0.2)",border:"1px solid rgba(245,158,11,0.4)",borderRadius:"7px",padding:"5px 10px",color:"#fcd34d",fontSize:"11px",fontWeight:700,cursor:"pointer",fontFamily:S.f,whiteSpace:"nowrap"}}>Rescan →</button>
+          </div>}
           <div style={{padding:"20px",borderRadius:"16px",marginBottom:"14px",background:sb(lr.overall),border:`1.5px solid ${sc(lr.overall)}33`,textAlign:"center"}}>
             <div style={{fontSize:"40px",marginBottom:"4px"}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
             <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:sc(lr.overall)}}>{lr.overall==="safe"?"Likely Safe":lr.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
