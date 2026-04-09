@@ -7,19 +7,36 @@
   <meta name="description" content="Your personal food allergen safety assistant. Scan ingredients, find safe restaurants, and manage your allergen profile.">
   <meta name="theme-color" content="#0b0e18">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0b0e18; overflow-x: hidden; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0d16; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
     #root { min-height: 100vh; }
-    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0e18; color: #fff; font-family: sans-serif; flex-direction: column; gap: 12px; }
-    .app-loader .logo { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 32px; animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+    /* Loading screen */
+    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a0d16; color: #fff; font-family: sans-serif; flex-direction: column; gap: 12px; }
+    .app-loader .logo { width: 72px; height: 72px; border-radius: 22px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 36px; animation: pulse 1.8s ease-in-out infinite; box-shadow: 0 8px 32px rgba(34,197,94,0.3); }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.9; } }
+
+    /* Global interactive states */
+    button { transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease; }
+    button:active:not(:disabled) { transform: scale(0.97); }
+    input, textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    input:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+    /* Placeholder */
+    ::placeholder { color: rgba(255,255,255,0.25); }
+
+    /* Details/summary */
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+
     /* Desktop scaling */
-    @media (min-width: 1440px) {
-      #root { zoom: 1.05; }
-    }
-    @media (min-width: 1800px) {
-      #root { zoom: 1.08; }
-    }
+    @media (min-width: 1440px) { #root { zoom: 1.05; } }
+    @media (min-width: 1800px) { #root { zoom: 1.08; } }
   </style>
 </head>
 <body>
@@ -202,7 +219,7 @@ if (!document.querySelector('link[href*="DM+Sans"]')) {
   fl.rel="stylesheet"; document.head.appendChild(fl);
 }
 
-const S = { f:"'DM Sans',sans-serif", sf:"'Fraunces',serif", bg:"#0b0e18", card:"rgba(255,255,255,0.03)", brd:"rgba(255,255,255,0.07)", mut:"rgba(255,255,255,0.4)", g:"#22c55e", y:"#f59e0b", r:"#ef4444", p:"#a78bfa", pbg:"rgba(139,92,246,0.12)" };
+const S = { f:"'DM Sans',sans-serif", sf:"'Fraunces',serif", bg:"#0a0d16", card:"rgba(255,255,255,0.055)", card2:"rgba(255,255,255,0.08)", brd:"rgba(255,255,255,0.1)", mut:"rgba(255,255,255,0.38)", g:"#22c55e", y:"#f59e0b", r:"#ef4444", p:"#a78bfa", pbg:"rgba(139,92,246,0.14)", shadow:"0 4px 24px rgba(0,0,0,0.4)", shadowSm:"0 2px 12px rgba(0,0,0,0.3)" };
 const sc = s => s==="safe"?S.g:s==="caution"?S.y:S.r;
 const sb = s => s==="safe"?"rgba(34,197,94,0.08)":s==="caution"?"rgba(245,158,11,0.08)":"rgba(239,68,68,0.08)";
 
@@ -396,7 +413,7 @@ function App() {
   const doScan = (text, label, fromPage) => {
     const r = runScan(text, prof.allergens);
     const autoLabel = label || text.trim().split(/[,;]/)[0].replace(/\([^)]*\)/g,"").trim().slice(0,50);
-    const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
+    const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
     saveProf({ history: [entry, ...(prof.history||[])].slice(0,50) });
     // Push current result to stack if we're already on results
     if (pg === "results" && res) {
@@ -407,6 +424,15 @@ function App() {
       setResultStack([{ res: null, label: "", fromPage: fromPage || pg }]);
     }
     setRes(r); setResLabel(autoLabel); nav("results", true);
+  };
+
+  // Re-run scan against current allergens so history stays accurate after profile changes
+  const liveResult = (h) => {
+    if (h.ingredients && prof && prof.allergens) {
+      const r = runScan(h.ingredients, prof.allergens);
+      return { overall: r.overall, items: r.items, summary: r.summary, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length };
+    }
+    return { overall: h.overall, items: h.items||[], summary: h.summary, dc: h.dc||0, cc: h.cc||0, sc: h.sc||0 };
   };
 
   const goBackFromResults = () => {
@@ -649,15 +675,24 @@ function App() {
       try {
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng');
         const cleaned = text.replace(/[^\x20-\x7E\n]/g, '');
+
         // Extract product name from text before INGREDIENTS line
+        let detectedLabel = "";
         const ingIdx = cleaned.search(/ingredient[s]?\s*[:\-]/i);
         if (ingIdx > 0) {
-          const before = cleaned.slice(0, ingIdx).trim().split('\n').map(l=>l.trim()).filter(l=>l.length>2 && l.length<60 && !/^\d/.test(l));
-          if (before.length > 0) setPhotoLabel(before[before.length-1]);
+          const beforeLines = cleaned.slice(0, ingIdx).trim().split('\n')
+            .map(l => l.trim())
+            .filter(l => l.length > 3 && l.length < 60 && !/^\d/.test(l) && /[a-zA-Z]{3,}/.test(l) && !/net\s*wt|oz|lb|gram|serving|fl\s*oz/i.test(l));
+          // Pick the longest line as the most likely product name
+          if (beforeLines.length > 0) {
+            detectedLabel = beforeLines.reduce((a, b) => b.length > a.length ? b : a, "");
+          }
         }
+
         // Extract just the ingredients section, stopping at label footer/nutrition info
         const match = cleaned.match(/ingredient[s]?\s*[:\-]?\s*([\s\S]+?)(?=\n\s*\n|\bnutrition\b|\bserving\b|\bcalories\b|\btotal fat\b|\bdistributed\b|\bmanufactured\b|\bproduced\b|\bpacked\b|\bimported\b|\bcontains\b|\ballergen\b|$)/i);
         const raw = match ? match[1] : cleaned;
+
         // Remove lines that are mostly numbers/symbols (nutrition label rows)
         const filtered = raw.split('\n')
           .filter(line => {
@@ -666,10 +701,12 @@ function App() {
             return total === 0 || letters / total > 0.4;
           })
           .join(' ');
-        // Remove stray symbols, phone numbers, URLs, units, and short OCR artifacts
+
+        // Remove phone numbers, URLs, units, stray symbols, and short OCR artifacts
         const validShort = new Set(['of','or','in','a','an','and','as','at','by','do','go','is','it','no','on','to','up','vs','with']);
         const extracted = filtered
           .replace(/[|\\^~`@#$*_]/g, '')
+          .replace(/1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g, '')
           .replace(/\b\d[\d\s\-().]{7,}\d\b/g, '')
           .replace(/(?:https?:\/\/|www\.)\S+/gi, '')
           .replace(/\b[\w.-]+\.(?:com|net|org|us|ca|co)\b/gi, '')
@@ -686,18 +723,15 @@ function App() {
           .join('')
           .replace(/\s{2,}/g, ' ')
           .trim();
+
         if (extracted) {
           setTxt(extracted);
           const realWords = extracted.split(/\s+/).filter(w => /^[a-zA-Z]{4,}$/.test(w));
-          if (realWords.length < 5) {
-            setOcrBad(true);
-          } else {
-            setOcrBad(false);
-          }
+          setOcrBad(realWords.length < 5);
         } else {
           setOcrBad(true);
         }
-        if (!photoLabel) setPhotoLabel("Scanned Label");
+        setPhotoLabel(detectedLabel || "Scanned Label");
       } catch(err) {
         console.error("OCR failed:", err);
         setPhotoLabel("Scanned Label");
@@ -739,8 +773,9 @@ function App() {
       }).addTo(map);
       nearbyResults.forEach(r => {
         if (r.lat && r.lon) {
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
           L.marker([r.lat, r.lon]).addTo(map)
-            .bindPopup(`<b>${r.name}</b><br/><span style="font-size:11px">${r.address}</span>`);
+            .bindPopup(`<div style="font-family:sans-serif;min-width:140px"><b style="font-size:13px">${r.name}</b><br/><span style="font-size:11px;color:#666">${r.address}</span><br/><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#7c3aed;text-decoration:none;font-weight:600">Open in Google Maps →</a></div>`);
         }
       });
       mapInstanceRef.current = map;
@@ -902,79 +937,92 @@ function App() {
   const hist = (prof&&prof.history)||[];
   const NavBtn = ({id,icon,label}) => {
     const active = pg===id||(pg==="results"&&id==="scanner")||(pg==="chain"&&id==="dining")||(pg==="histDetail"&&id==="home");
-    return <button onClick={()=>nav(id)} style={{flex:1,padding:"8px 4px",borderRadius:"10px",background:active?S.pbg:"transparent",color:active?S.p:S.mut,cursor:"pointer",fontSize:"11px",fontWeight:500,fontFamily:S.f,border:active?"1px solid rgba(139,92,246,0.2)":"1px solid transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:"3px"}}><span style={{fontSize:"16px"}}>{icon}</span>{label}</button>;
+    return (
+      <button onClick={()=>nav(id)} style={{flex:1,padding:"6px 4px",background:"transparent",border:"none",cursor:"pointer",fontFamily:S.f,display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",position:"relative"}}>
+        <div style={{width:"42px",height:"28px",borderRadius:"14px",background:active?S.pbg:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s",fontSize:"18px"}}>{icon}</div>
+        <span style={{fontSize:"10px",fontWeight:active?700:400,color:active?S.p:S.mut,letterSpacing:"0.2px",transition:"color 0.2s"}}>{label}</span>
+      </button>
+    );
   };
 
   return (
     <div style={{minHeight:"100vh",fontFamily:S.f,background:S.bg,color:"#e8e6f0"}}>
-      <header style={{padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${S.brd}`,background:"rgba(11,14,24,0.9)",backdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100}}>
+      <header style={{padding:"14px 20px 13px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${S.brd}`,background:"rgba(10,13,22,0.92)",backdropFilter:"blur(24px)",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>nav("home")}>
-          <div style={{width:"32px",height:"32px",borderRadius:"10px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}>🍽</div>
-          <span style={{fontFamily:S.sf,fontSize:"17px",fontWeight:800,color:"#fff"}}>Easy Eats</span>
+          <div style={{width:"34px",height:"34px",borderRadius:"11px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"17px",boxShadow:"0 2px 10px rgba(34,197,94,0.35)"}}>🍽</div>
+          <span style={{fontFamily:S.sf,fontSize:"18px",fontWeight:800,color:"#fff",letterSpacing:"-0.3px"}}>Easy Eats</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-          <div style={{display:"flex",gap:"2px",fontSize:"13px"}}>{prof.allergens.slice(0,4).map(id=><span key={id}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center"}}>+{prof.allergens.length-4}</span>}</div>
-          <div onClick={()=>nav("profile")} style={{width:"30px",height:"30px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:"#fff",cursor:"pointer"}}>{prof.name.charAt(0).toUpperCase()}</div>
+        <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+          <div style={{display:"flex",gap:"3px",fontSize:"14px",opacity:0.7}}>{prof.allergens.slice(0,4).map(id=><span key={id}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center",marginLeft:"2px"}}>+{prof.allergens.length-4}</span>}</div>
+          <div onClick={()=>nav("profile")} style={{width:"32px",height:"32px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:"0 2px 10px rgba(124,58,237,0.4)"}}>{prof.name.charAt(0).toUpperCase()}</div>
         </div>
       </header>
 
-      <nav style={{display:"flex",gap:"2px",padding:"8px 16px",borderBottom:`1px solid ${S.brd}`}}>
-        <NavBtn id="home" icon="🏠" label="Home" />
-        <NavBtn id="scanner" icon="🔬" label="Scan" />
-        <NavBtn id="nutrition" icon="🍎" label="Nutrition" />
-        <NavBtn id="dining" icon="📍" label="Dining" />
-        <NavBtn id="profile" icon="👤" label="Profile" />
-      </nav>
-
-      <main style={{padding:"20px 28px 90px",maxWidth:"720px",margin:"0 auto",opacity:fade?1:0,transition:"opacity 0.15s"}}>
+      <main style={{padding:"22px 20px 100px",maxWidth:"600px",margin:"0 auto",opacity:fade?1:0,transition:"opacity 0.18s ease"}}>
 
         {/* ═══ HOME ═══ */}
         {pg==="home"&&<div>
-          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Hey, {prof.name} 👋</h1>
-          <p style={{color:S.mut,fontSize:"13px",marginBottom:"16px"}}>Your allergen safety dashboard.</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"20px"}}>
-            {[{l:"Scans",v:hist.length,c:S.p},{l:"Safe",v:hist.filter(h=>h.overall==="safe").length,c:S.g},{l:"Flagged",v:hist.filter(h=>h.overall==="danger").length,c:S.r}].map(s=>(
-              <div key={s.l} style={{padding:"14px 10px",borderRadius:"14px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center"}}>
-                <div style={{fontSize:"26px",fontWeight:800,fontFamily:S.sf,color:s.c}}>{s.v}</div>
-                <div style={{fontSize:"10px",color:S.mut,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.l}</div>
-              </div>
-            ))}
+          <div style={{marginBottom:"20px"}}>
+            <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:800,color:"#fff",margin:"0 0 2px",letterSpacing:"-0.5px"}}>Hey, {prof.name} 👋</h1>
+            <p style={{color:S.mut,fontSize:"13px"}}>Your allergen safety dashboard.</p>
           </div>
-          {hist.length>0&&<>
-            <h3 style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>Recent Scans</h3>
-            {hist.slice(0,8).map(h=>(
-              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"11px 14px",marginBottom:"4px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"10px",display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%"}}>
-                <div style={{width:"8px",height:"8px",borderRadius:"50%",background:sc(h.overall),flexShrink:0}} />
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:500,fontSize:"13px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.label}</div>
-                  <div style={{fontSize:"10px",color:S.mut}}>{new Date(h.date).toLocaleDateString()}{h.dc>0&&<span style={{color:S.r,marginLeft:"6px"}}>{h.dc} danger</span>}{h.cc>0&&<span style={{color:S.y,marginLeft:"6px"}}>{h.cc} caution</span>}{h.sc>0&&<span style={{color:S.g,marginLeft:"6px"}}>{h.sc} safe</span>}</div>
+
+          {hist.length>0 ? <>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"24px"}}>
+              {[{l:"Total Scans",v:hist.length,c:S.p,icon:"🔬"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,icon:"✅"},{l:"Flagged",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,icon:"🚫"}].map(s=>(
+                <div key={s.l} style={{padding:"16px 10px 14px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",boxShadow:S.shadowSm}}>
+                  <div style={{fontSize:"10px",marginBottom:"6px"}}>{s.icon}</div>
+                  <div style={{fontSize:"28px",fontWeight:800,fontFamily:S.sf,color:s.c,lineHeight:1}}>{s.v}</div>
+                  <div style={{fontSize:"10px",color:S.mut,marginTop:"4px",letterSpacing:"0.3px"}}>{s.l}</div>
                 </div>
-                <span style={{color:S.mut,fontSize:"14px"}}>→</span>
+              ))}
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
+              <h3 style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>Recent Scans</h3>
+              <span style={{fontSize:"11px",color:S.mut}}>{hist.length} total</span>
+            </div>
+            {hist.slice(0,8).map(h=>(
+              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"13px 14px",marginBottom:"6px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%",boxShadow:S.shadowSm}}>
+                {(()=>{const lr=liveResult(h);const icon=lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫";return(<>
+                <span style={{fontSize:"20px",flexShrink:0}}>{icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:"2px"}}>{h.label}</div>
+                  <div style={{fontSize:"11px",color:S.mut}}>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{lr.dc>0&&<span style={{color:S.r,marginLeft:"8px"}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y,marginLeft:"8px"}}>● {lr.cc} caution</span>}</div>
+                </div>
+                <span style={{color:"rgba(255,255,255,0.2)",fontSize:"16px",flexShrink:0}}>›</span>
+                </>)})()}
               </button>
             ))}
-          </>}
+          </> : (
+            <div style={{textAlign:"center",padding:"48px 20px",background:S.card,borderRadius:"20px",border:`1px solid ${S.brd}`}}>
+              <div style={{fontSize:"48px",marginBottom:"14px"}}>🍽</div>
+              <div style={{fontFamily:S.sf,fontSize:"20px",fontWeight:800,color:"#fff",marginBottom:"8px"}}>No scans yet</div>
+              <div style={{fontSize:"13px",color:S.mut,lineHeight:1.6,marginBottom:"24px"}}>Scan an ingredient label to check for your allergens.</div>
+              <button onClick={()=>nav("scanner")} style={{padding:"12px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 20px rgba(124,58,237,0.4)"}}>Start Scanning</button>
+            </div>
+          )}
         </div>}
 
         {/* ═══ HIST DETAIL ═══ */}
-        {pg==="histDetail"&&viewHist&&<div>
+        {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);return(<div>
           <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back</button>
           <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>{viewHist.label}</h2>
           <div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{new Date(viewHist.date).toLocaleString()}</div>
-          <div style={{padding:"20px",borderRadius:"16px",marginBottom:"14px",background:sb(viewHist.overall),border:`1.5px solid ${sc(viewHist.overall)}33`,textAlign:"center"}}>
-            <div style={{fontSize:"40px",marginBottom:"4px"}}>{viewHist.overall==="safe"?"✅":viewHist.overall==="caution"?"⚠️":"🚫"}</div>
-            <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:sc(viewHist.overall)}}>{viewHist.overall==="safe"?"Likely Safe":viewHist.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
-            <div style={{fontSize:"12px",color:S.mut,marginTop:"4px"}}>{viewHist.summary}</div>
+          <div style={{padding:"20px",borderRadius:"16px",marginBottom:"14px",background:sb(lr.overall),border:`1.5px solid ${sc(lr.overall)}33`,textAlign:"center"}}>
+            <div style={{fontSize:"40px",marginBottom:"4px"}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
+            <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:sc(lr.overall)}}>{lr.overall==="safe"?"Likely Safe":lr.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
+            <div style={{fontSize:"12px",color:S.mut,marginTop:"4px"}}>{lr.summary}</div>
           </div>
           <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
-            {[{l:"Danger",c:viewHist.dc,color:S.r},{l:"Caution",c:viewHist.cc,color:S.y},{l:"Safe",c:viewHist.sc,color:S.g}].map(s=>(
+            {[{l:"Danger",c:lr.dc,color:S.r},{l:"Caution",c:lr.cc,color:S.y},{l:"Safe",c:lr.sc,color:S.g}].map(s=>(
               <div key={s.l} style={{flex:1,padding:"10px",borderRadius:"12px",background:`${s.color}11`,textAlign:"center",border:`1px solid ${s.color}22`}}>
                 <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:s.color}}>{s.c}</div>
                 <div style={{fontSize:"9px",color:s.color,fontWeight:600,textTransform:"uppercase"}}>{s.l}</div>
               </div>
             ))}
           </div>
-          {viewHist.items&&viewHist.items.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"12px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✕ Flagged ({viewHist.items.filter(i=>i.status!=="safe").length})</div>}
-          {viewHist.items&&viewHist.items.filter(i=>i.status!=="safe").map((item,i)=>(
+          {lr.items.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"12px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✕ Flagged ({lr.items.filter(i=>i.status!=="safe").length})</div>}
+          {lr.items.filter(i=>i.status!=="safe").map((item,i)=>(
             <div key={i} style={{padding:"11px 14px",marginBottom:"5px",borderRadius:"10px",background:sb(item.status),border:`1px solid ${sc(item.status)}22`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
               <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"5px",background:sc(item.status),flexShrink:0}} />
               <div style={{flex:1}}>
@@ -983,14 +1031,14 @@ function App() {
               </div>
             </div>
           ))}
-          {viewHist.items&&viewHist.items.filter(i=>i.status==="safe").length>0&&<>
-            <div style={{fontSize:"12px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",margin:"12px 0 8px"}}>✓ Safe ({viewHist.items.filter(i=>i.status==="safe").length})</div>
-            {viewHist.items.filter(i=>i.status==="safe").map((item,i)=>(
+          {lr.items.filter(i=>i.status==="safe").length>0&&<>
+            <div style={{fontSize:"12px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",margin:"12px 0 8px"}}>✓ Safe ({lr.items.filter(i=>i.status==="safe").length})</div>
+            {lr.items.filter(i=>i.status==="safe").map((item,i)=>(
               <div key={i} style={{padding:"8px 14px",marginBottom:"3px",borderRadius:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)",fontSize:"12px",color:"rgba(255,255,255,0.5)",display:"flex",alignItems:"center",gap:"8px"}}><span style={{color:S.g}}>✓</span>{item.ingredient}</div>
             ))}
           </>}
 
-        </div>}
+        </div>);})()}
 
         {/* ═══ SCANNER ═══ */}
         {pg==="scanner"&&<div>
@@ -1093,30 +1141,29 @@ function App() {
 
         {/* ═══ RESULTS ═══ */}
         {pg==="results"&&res&&<div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-            <button onClick={goBackFromResults} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f}}>← Back</button>
-            <button onClick={()=>shareResults(res,resLabel)} style={{padding:"6px 14px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:copied?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:500,transition:"all 0.2s"}}>
-              {copied?"✓ Copied!":"📋 Share Results"}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+            <button onClick={goBackFromResults} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600,display:"flex",alignItems:"center",gap:"4px"}}>‹ Back</button>
+            <button onClick={()=>shareResults(res,resLabel)} style={{padding:"7px 14px",background:copied?"rgba(34,197,94,0.12)":"rgba(255,255,255,0.06)",border:`1px solid ${copied?"rgba(34,197,94,0.3)":S.brd}`,borderRadius:"20px",color:copied?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>
+              {copied?"✓ Copied":"📋 Share"}
             </button>
           </div>
-          {resLabel&&<h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 12px"}}>{resLabel}</h2>}
-          {!resLabel&&<h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 12px"}}>Scan Results</h2>}
-          <div style={{padding:"22px",borderRadius:"16px",marginBottom:"14px",background:sb(res.overall),border:`1.5px solid ${sc(res.overall)}33`,textAlign:"center"}}>
-            <div style={{fontSize:"42px",marginBottom:"4px"}}>{res.overall==="safe"?"✅":res.overall==="caution"?"⚠️":"🚫"}</div>
-            <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:sc(res.overall),marginBottom:"4px"}}>{res.overall==="safe"?"Likely Safe":res.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
-            <div style={{fontSize:"12px",color:S.mut}}>{res.summary}</div>
+          <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 14px",letterSpacing:"-0.3px"}}>{resLabel||"Scan Results"}</h2>
+          <div style={{padding:"24px 20px",borderRadius:"20px",marginBottom:"14px",background:sb(res.overall),border:`1.5px solid ${sc(res.overall)}44`,textAlign:"center",boxShadow:S.shadowSm}}>
+            <div style={{fontSize:"48px",marginBottom:"6px"}}>{res.overall==="safe"?"✅":res.overall==="caution"?"⚠️":"🚫"}</div>
+            <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:sc(res.overall),marginBottom:"6px"}}>{res.overall==="safe"?"Looks Safe":"Use Caution" }</div>
+            <div style={{fontSize:"13px",color:"rgba(255,255,255,0.55)",lineHeight:1.5}}>{res.summary}</div>
           </div>
-          <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
+          <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
             {[{l:"Danger",c:res.items.filter(i=>i.status==="danger").length,color:S.r},{l:"Caution",c:res.items.filter(i=>i.status==="caution").length,color:S.y},{l:"Safe",c:res.items.filter(i=>i.status==="safe").length,color:S.g}].map(s=>(
-              <div key={s.l} style={{flex:1,padding:"10px",borderRadius:"12px",background:`${s.color}11`,textAlign:"center",border:`1px solid ${s.color}22`}}>
-                <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:s.color}}>{s.c}</div>
-                <div style={{fontSize:"9px",color:s.color,fontWeight:600,textTransform:"uppercase"}}>{s.l}</div>
+              <div key={s.l} style={{flex:1,padding:"12px 8px",borderRadius:"14px",background:`${s.color}10`,textAlign:"center",border:`1px solid ${s.color}25`}}>
+                <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:s.color,lineHeight:1}}>{s.c}</div>
+                <div style={{fontSize:"9px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"4px"}}>{s.l}</div>
               </div>
             ))}
           </div>
           {res.items.filter(i=>i.status!=="safe").map((item,i)=>(
-            <div key={i} style={{padding:"11px 14px",marginBottom:"5px",borderRadius:"10px",background:sb(item.status),border:`1px solid ${sc(item.status)}22`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
-              <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"5px",background:sc(item.status),flexShrink:0}} />
+            <div key={i} style={{padding:"12px 14px",marginBottom:"6px",borderRadius:"12px",background:sb(item.status),border:`1px solid ${sc(item.status)}28`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
+              <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"6px",background:sc(item.status),flexShrink:0}} />
               <div style={{flex:1}}>
                 <div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{item.ingredient}{item.allergen&&<span style={{marginLeft:"6px",fontSize:"10px",padding:"2px 6px",background:`${sc(item.status)}22`,borderRadius:"4px",color:sc(item.status)}}>{item.allergen}</span>}</div>
                 <div style={{fontSize:"11px",color:S.mut,marginTop:"1px"}}>{item.reason}</div>
@@ -1361,7 +1408,7 @@ function App() {
           <div style={{padding:"20px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px"}}>
             <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"10px"}}>Statistics</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-              {[{l:"Total Scans",v:hist.length,c:"#fff"},{l:"Safe",v:hist.filter(h=>h.overall==="safe").length,c:S.g},{l:"Danger",v:hist.filter(h=>h.overall==="danger").length,c:S.r},{l:"Caution",v:hist.filter(h=>h.overall!=="safe"&&h.overall!=="danger").length,c:S.y}].map(s=>(
+              {[{l:"Total Scans",v:hist.length,c:"#fff"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g},{l:"Danger",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r},{l:"Caution",v:hist.filter(h=>liveResult(h).overall==="caution").length,c:S.y}].map(s=>(
                 <div key={s.l}><span style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:s.c}}>{s.v}</span><div style={{fontSize:"10px",color:S.mut}}>{s.l}</div></div>
               ))}
             </div>
@@ -1426,7 +1473,13 @@ function App() {
         </div>}
       </main>
 
-      <div style={{position:"fixed",bottom:0,left:0,right:0,padding:"6px 20px",background:"rgba(11,14,24,0.95)",borderTop:`1px solid ${S.brd}`,fontSize:"9px",color:"rgba(255,255,255,0.18)",textAlign:"center"}}>Easy Eats · Informational only · Always verify with manufacturer</div>
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(10,13,22,0.96)",backdropFilter:"blur(24px)",borderTop:`1px solid ${S.brd}`,padding:"6px 8px 10px",display:"flex",gap:"2px",zIndex:100}}>
+        <NavBtn id="home" icon="🏠" label="Home" />
+        <NavBtn id="scanner" icon="🔬" label="Scan" />
+        <NavBtn id="nutrition" icon="🍎" label="Nutrition" />
+        <NavBtn id="dining" icon="📍" label="Dining" />
+        <NavBtn id="profile" icon="👤" label="Profile" />
+      </nav>
     </div>
   );
 }
