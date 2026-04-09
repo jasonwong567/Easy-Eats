@@ -614,7 +614,6 @@ function App() {
         });
       });
 
-      if (results.length === 0) return null;
       return { results: results.sort((a,b) => a.distance - b.distance), displayName, center: [lat, lon] };
     } catch (e) {
       console.log("OSM fetch failed, using fallback:", e);
@@ -629,17 +628,25 @@ function App() {
 
     // Try real OSM data first
     const osmResult = await searchWithOSM(n);
-    if (osmResult && osmResult.results.length > 0) {
+    if (osmResult) {
+      // Always use geocoded coordinates for the map
+      setMapCenter(osmResult.center);
       setLocSet(osmResult.displayName);
       setLocInput(osmResult.displayName);
-      setNearbyResults(osmResult.results);
-      setMapCenter(osmResult.center);
-      setUsingRealData(true);
+      if (osmResult.results.length > 0) {
+        setNearbyResults(osmResult.results);
+        setUsingRealData(true);
+        setLocLoading(false);
+        return;
+      }
+      // Geocoded OK but no chain matches nearby — show simulated menu data at real location
+      setUsingRealData(false);
+      setNearbyResults(generateNearby(osmResult.displayName));
       setLocLoading(false);
       return;
     }
 
-    // Fallback to simulated data
+    // Full fallback (no network / geocode failed) — simulated data only
     setUsingRealData(false);
     const match = CITIES.find(c => c.name.toLowerCase() === n.toLowerCase());
     if (!match) {
@@ -649,13 +656,12 @@ function App() {
         setNearbyResults(generateNearby(partials[0].name));
         setLocLoading(false); return;
       }
-      // If OSM failed and no city match, just try generating with raw input
       if (n.length >= 3) {
         setLocSet(n); setLocInput(n);
         setNearbyResults(generateNearby(n));
         setLocLoading(false); return;
       }
-      setLocError("City not found. Try selecting from the dropdown.");
+      setLocError("Location not found. Try a city name or zip code.");
       setLocLoading(false); return;
     }
     setLocSet(match.name); setLocInput(match.name);
