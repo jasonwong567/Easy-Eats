@@ -288,6 +288,8 @@ function App() {
   const [nutLoading, setNutLoading] = useState(false);
   const [nutError, setNutError] = useState("");
   const [nutSelected, setNutSelected] = useState(null);
+  const [nutDetail, setNutDetail] = useState(null);
+  const [nutDetailLoading, setNutDetailLoading] = useState(false);
 
   // Map state
   const [mapCenter, setMapCenter] = useState(null);
@@ -804,6 +806,23 @@ function App() {
     };
   }, [pg, locSet, mapCenter, nearbyResults]);
 
+  // Fetch detailed nutrition from Nutrition Analysis API when item is selected
+  useEffect(() => {
+    if (!nutSelected || !nutSelected.ingredients) { setNutDetail(null); return; }
+    setNutDetail(null);
+    setNutDetailLoading(true);
+    const ingr = nutSelected.ingredients.split(",").map(s => s.trim()).filter(s => s.length > 1);
+    fetch(`${WORKER_URL}/api/nutrition-details`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ingr }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data && data.totalNutrients) setNutDetail(data); })
+      .catch(() => {})
+      .finally(() => setNutDetailLoading(false));
+  }, [nutSelected]);
+
   // Nutrition search via same Edamam endpoint
   const searchNutrition = async () => {
     const q = nutQuery.trim();
@@ -1249,18 +1268,34 @@ function App() {
                   );
                 })() : <div style={{padding:"10px 12px",borderRadius:"8px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,marginBottom:"12px"}}>No ingredient list available for allergen check.</div>}
                 {/* Nutrients */}
-                {Object.keys(nutSelected.nutrients).length>0&&(()=>{
-                  const n = nutSelected.nutrients;
+                {nutDetailLoading&&<div style={{textAlign:"center",padding:"16px",fontSize:"13px",color:S.mut}}>⏳ Loading full nutrition data…</div>}
+                {!nutDetailLoading&&(()=>{
+                  const tn = nutDetail ? nutDetail.totalNutrients : null;
+                  const n = nutSelected.nutrients || {};
+                  const cal = tn ? Math.round(tn.ENERC_KCAL?.quantity||0) : Math.round(n.ENERC_KCAL||0);
                   const macros = [
-                    {l:"Calories",v:Math.round(n.ENERC_KCAL||0),u:"kcal",color:"#f59e0b"},
-                    {l:"Protein",v:Math.round(n.PROCNT||0),u:"g",color:"#22c55e"},
-                    {l:"Fat",v:Math.round(n.FAT||0),u:"g",color:"#ef4444"},
-                    {l:"Carbs",v:Math.round(n.CHOCDF||0),u:"g",color:"#3b82f6"},
+                    {l:"Calories",v:cal,u:"kcal",color:"#f59e0b"},
+                    {l:"Protein",v:Math.round(tn?tn.PROCNT?.quantity||0:n.PROCNT||0),u:"g",color:"#22c55e"},
+                    {l:"Fat",v:Math.round(tn?tn.FAT?.quantity||0:n.FAT||0),u:"g",color:"#ef4444"},
+                    {l:"Carbs",v:Math.round(tn?tn.CHOCDF?.quantity||0:n.CHOCDF||0),u:"g",color:"#3b82f6"},
                   ];
+                  const extras = tn ? [
+                    {l:"Fiber",v:(tn.FIBTG?.quantity||0).toFixed(1),u:"g"},
+                    {l:"Sugar",v:(tn.SUGAR?.quantity||0).toFixed(1),u:"g"},
+                    {l:"Sodium",v:Math.round(tn.NA?.quantity||0),u:"mg"},
+                    {l:"Cholesterol",v:Math.round(tn.CHOLE?.quantity||0),u:"mg"},
+                    {l:"Calcium",v:Math.round(tn.CA?.quantity||0),u:"mg"},
+                    {l:"Iron",v:(tn.FE?.quantity||0).toFixed(1),u:"mg"},
+                    {l:"Potassium",v:Math.round(tn.K?.quantity||0),u:"mg"},
+                    {l:"Vitamin C",v:Math.round(tn.VITC?.quantity||0),u:"mg"},
+                  ].filter(e=>e.v>0) : [];
                   return(
                     <div>
-                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"8px"}}>Nutrition per 100g</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"8px"}}>
+                        {tn ? "Full Nutrition" : "Nutrition per 100g"}
+                        {tn&&<span style={{marginLeft:"6px",color:S.g,fontSize:"9px"}}>● Powered by Edamam</span>}
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom: extras.length?"12px":"0"}}>
                         {macros.map(m=>(
                           <div key={m.l} style={{padding:"12px",borderRadius:"10px",background:`${m.color}11`,border:`1px solid ${m.color}22`,textAlign:"center"}}>
                             <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:m.color}}>{m.v}<span style={{fontSize:"11px",fontWeight:400,marginLeft:"2px"}}>{m.u}</span></div>
@@ -1268,6 +1303,14 @@ function App() {
                           </div>
                         ))}
                       </div>
+                      {extras.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+                        {extras.map(e=>(
+                          <div key={e.l} style={{padding:"8px 12px",borderRadius:"8px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:"11px",color:S.mut}}>{e.l}</span>
+                            <span style={{fontSize:"12px",fontWeight:700,color:"rgba(255,255,255,0.8)"}}>{e.v}<span style={{fontSize:"9px",color:S.mut,marginLeft:"2px"}}>{e.u}</span></span>
+                          </div>
+                        ))}
+                      </div>}
                     </div>
                   );
                 })()}
