@@ -413,6 +413,7 @@ function App() {
   const nav = (p, keepState) => { setFade(false); setTimeout(() => { setPg(p); setFade(true); if (!keepState) { setRes(null); setViewChain(null); setViewHist(null); setResultStack([]); } }, 120); };
 
   const doScan = (text, label, fromPage) => {
+    if (!prof) return;
     const r = runScan(text, prof.allergens);
     const autoLabel = label || text.trim().split(/[,;]/)[0].replace(/\([^)]*\)/g,"").trim().slice(0,50);
     const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
@@ -618,7 +619,6 @@ function App() {
 
       return { results: results.sort((a,b) => a.distance - b.distance), displayName, center: [lat, lon] };
     } catch (e) {
-      console.log("OSM fetch failed, using fallback:", e);
       return null;
     }
   };
@@ -744,10 +744,10 @@ function App() {
         }
         setPhotoLabel(detectedLabel || "Scanned Label");
       } catch(err) {
-        console.error("OCR failed:", err);
         setPhotoLabel("Scanned Label");
+        setOcrBad(true);
+        setOcrLoading(false);
       }
-      setOcrLoading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -767,19 +767,20 @@ function App() {
       ta.value = text; ta.style.position="fixed"; ta.style.left="-9999px";
       document.body.appendChild(ta); ta.select(); document.execCommand("copy");
       document.body.removeChild(ta);
-      setCopied(true); setTimeout(()=>{setCopied(false);setShareText("");},2500);
+      setCopied(true); if(window._copyTimer)clearTimeout(window._copyTimer); window._copyTimer=setTimeout(()=>{setCopied(false);setShareText("");},2500);
     } catch(e) { setCopied(false); }
   };
 
-  // Leaflet map — initialize/update when dining results are available
+  // Keep a ref so Leaflet popup callback always sees latest nearbyResults (avoids stale closure)
+  const nearbyResultsRef = useRef(nearbyResults);
+  useEffect(() => { nearbyResultsRef.current = nearbyResults; }, [nearbyResults]);
   useEffect(() => {
-    // Register global callback so Leaflet popup HTML can trigger in-app navigation
     window._easyEatsNavChain = (locId) => {
-      const r = nearbyResults.find(x => x.locId === locId);
+      const r = nearbyResultsRef.current.find(x => x.locId === locId);
       if (r) { setViewChain(r); nav("chain", true); }
     };
     return () => { delete window._easyEatsNavChain; };
-  }, [nearbyResults]);
+  }, []);
 
   useEffect(() => {
     if (pg !== "dining" || !locSet || !mapCenter || nearbyResults.length === 0) return;
@@ -811,16 +812,19 @@ function App() {
     if (!nutSelected || !nutSelected.ingredients) { setNutDetail(null); return; }
     setNutDetail(null);
     setNutDetailLoading(true);
+    const controller = new AbortController();
     const ingr = nutSelected.ingredients.split(",").map(s => s.trim()).filter(s => s.length > 1);
     fetch(`${WORKER_URL}/api/nutrition-details`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ingr }),
+      signal: controller.signal,
     })
       .then(r => r.json())
       .then(data => { if (data && data.totalNutrients) setNutDetail(data); })
-      .catch(() => {})
+      .catch(e => { if (e.name === "AbortError") return; })
       .finally(() => setNutDetailLoading(false));
+    return () => controller.abort();
   }, [nutSelected]);
 
   // Nutrition search via same Edamam endpoint
@@ -868,9 +872,7 @@ function App() {
         // Retry with just the first word if multi-word query
         const words = q.split(" ");
         if (words.length > 1 && !overrideQuery) {
-          setFoodLoading(false);
-          searchFood(words[0]);
-          return;
+          return searchFood(words[0]);
         }
         setFoodError("No results found. Try a different search term.");
       } else {
@@ -1250,7 +1252,7 @@ function App() {
           {nutError&&<div style={{fontSize:"12px",color:"#fca5a5",marginBottom:"12px",padding:"10px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"10px"}}>{nutError}</div>}
           {nutSelected ? (
             <div>
-              <button onClick={()=>setNutSelected(null)} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back to results</button>
+              <button onClick={()=>{setNutSelected(null);setNutDetail(null);setNutError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back to results</button>
               <div style={{padding:"16px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",marginBottom:"12px"}}>
                 <div style={{fontSize:"18px",fontWeight:800,color:"#fff",fontFamily:S.sf,marginBottom:"2px"}}>{nutSelected.label}</div>
                 {nutSelected.brand&&<div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{nutSelected.brand}</div>}
