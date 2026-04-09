@@ -34,6 +34,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -252,7 +254,9 @@ function App() {
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrBad, setOcrBad] = useState(false);
   const [photoLabel, setPhotoLabel] = useState("");
+  const [scannerTab, setScannerTab] = useState("search");
   const [copied, setCopied] = useState(false);
 
   // Food search state (Edamam via Cloudflare Worker)
@@ -260,6 +264,18 @@ function App() {
   const [foodResults, setFoodResults] = useState([]);
   const [foodLoading, setFoodLoading] = useState(false);
   const [foodError, setFoodError] = useState("");
+
+  // Nutrition tab state
+  const [nutQuery, setNutQuery] = useState("");
+  const [nutResults, setNutResults] = useState([]);
+  const [nutLoading, setNutLoading] = useState(false);
+  const [nutError, setNutError] = useState("");
+  const [nutSelected, setNutSelected] = useState(null);
+
+  // Map state
+  const [mapCenter, setMapCenter] = useState(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
 
   // Load on mount
   useEffect(() => {
@@ -567,11 +583,13 @@ function App() {
           address: addr,
           distance: parseFloat(dist.toFixed(1)),
           osmId: el.id,
+          lat: el.lat,
+          lon: el.lon,
         });
       });
 
       if (results.length === 0) return null;
-      return { results: results.sort((a,b) => a.distance - b.distance), displayName };
+      return { results: results.sort((a,b) => a.distance - b.distance), displayName, center: [lat, lon] };
     } catch (e) {
       console.log("OSM fetch failed, using fallback:", e);
       return null;
@@ -589,6 +607,7 @@ function App() {
       setLocSet(osmResult.displayName);
       setLocInput(osmResult.displayName);
       setNearbyResults(osmResult.results);
+      setMapCenter(osmResult.center);
       setUsingRealData(true);
       setLocLoading(false);
       return;
@@ -667,7 +686,17 @@ function App() {
           .join('')
           .replace(/\s{2,}/g, ' ')
           .trim();
-        if (extracted) setTxt(extracted);
+        if (extracted) {
+          setTxt(extracted);
+          const realWords = extracted.split(/\s+/).filter(w => /^[a-zA-Z]{4,}$/.test(w));
+          if (realWords.length < 5) {
+            setOcrBad(true);
+          } else {
+            setOcrBad(false);
+          }
+        } else {
+          setOcrBad(true);
+        }
         if (!photoLabel) setPhotoLabel("Scanned Label");
       } catch(err) {
         console.error("OCR failed:", err);
@@ -695,6 +724,53 @@ function App() {
       document.body.removeChild(ta);
       setCopied(true); setTimeout(()=>{setCopied(false);setShareText("");},2500);
     } catch(e) { setCopied(false); }
+  };
+
+  // Leaflet map — initialize/update when dining results are available
+  useEffect(() => {
+    if (pg !== "dining" || !locSet || !mapCenter || nearbyResults.length === 0) return;
+    const timer = setTimeout(() => {
+      if (!mapRef.current) return;
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+      const map = L.map(mapRef.current, { zoomControl: true }).setView(mapCenter, 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+      nearbyResults.forEach(r => {
+        if (r.lat && r.lon) {
+          L.marker([r.lat, r.lon]).addTo(map)
+            .bindPopup(`<b>${r.name}</b><br/><span style="font-size:11px">${r.address}</span>`);
+        }
+      });
+      mapInstanceRef.current = map;
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+    };
+  }, [pg, locSet, mapCenter, nearbyResults]);
+
+  // Nutrition search via same Edamam endpoint
+  const searchNutrition = async () => {
+    const q = nutQuery.trim();
+    if (!q) return;
+    setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null);
+    try {
+      const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
+      const data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+      const hits = (data.hints || []).map(h => ({
+        label: h.food.label,
+        brand: h.food.brand || null,
+        ingredients: h.food.ingredients || null,
+        nutrients: h.food.nutrients || {},
+        category: h.food.category || null,
+      })).filter(h => h.label).slice(0, 8);
+      if (hits.length === 0) setNutError("No results found. Try a different search term.");
+      else setNutResults(hits);
+    } catch(e) { setNutError(`Error: ${e.message}`); }
+    setNutLoading(false);
   };
 
   // Food search via Cloudflare Worker → Edamam Food Database
@@ -844,7 +920,8 @@ function App() {
 
       <nav style={{display:"flex",gap:"2px",padding:"8px 16px",borderBottom:`1px solid ${S.brd}`}}>
         <NavBtn id="home" icon="🏠" label="Home" />
-        <NavBtn id="scanner" icon="🔍" label="Scanner" />
+        <NavBtn id="scanner" icon="🔬" label="Scan" />
+        <NavBtn id="nutrition" icon="🍎" label="Nutrition" />
         <NavBtn id="dining" icon="📍" label="Dining" />
         <NavBtn id="profile" icon="👤" label="Profile" />
       </nav>
@@ -918,82 +995,100 @@ function App() {
         {/* ═══ SCANNER ═══ */}
         {pg==="scanner"&&<div>
           <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Ingredient Scanner</h1>
-          <p style={{color:S.mut,fontSize:"13px",marginBottom:"16px",lineHeight:1.5}}>Search any food by name, paste an ingredient list, or upload a label photo.</p>
+          <p style={{color:S.mut,fontSize:"13px",marginBottom:"14px",lineHeight:1.5}}>Scan a label photo, search by name, or paste ingredients manually.</p>
 
-          {/* Photo Upload */}
-          <div style={{marginBottom:"12px",borderRadius:"14px",overflow:"hidden"}}>
-            {photoPreview ? (
-              <div style={{padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",textAlign:"center"}}>
-                <img src={photoPreview} alt="Label" style={{maxWidth:"100%",maxHeight:"160px",borderRadius:"8px",marginBottom:"8px"}} />
-                {ocrLoading
-                  ? <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>⏳ Reading ingredients from photo...</div>
-                  : <div style={{fontSize:"11px",color:S.g,marginBottom:"8px"}}>✓ Ingredients extracted — review below then scan</div>
-                }
-                <input
-                  value={photoLabel}
-                  onChange={e=>setPhotoLabel(e.target.value)}
-                  placeholder="Product name (e.g. Oreo, Tyson Nuggets)..."
-                  style={{width:"100%",padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"8px"}}
-                />
-                <button onClick={()=>{setPhotoPreview(null);setOcrLoading(false);setPhotoLabel("");}} style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
-              </div>
-            ) : (
-              <label style={{display:"block",padding:"16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer"}}>
-                <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{display:"none"}} />
-                <div style={{fontSize:"28px",marginBottom:"6px"}}>📷</div>
-                <div style={{fontSize:"13px",color:"rgba(255,255,255,0.5)"}}>Upload ingredient label photo</div>
-                <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>Take a photo or choose from gallery</div>
-              </label>
-            )}
+          {/* Tab bar */}
+          <div style={{display:"flex",gap:"4px",marginBottom:"16px",background:"rgba(255,255,255,0.04)",borderRadius:"12px",padding:"4px"}}>
+            {[{id:"photo",icon:"📷",label:"Photo"},{id:"search",icon:"🔍",label:"Search"},{id:"manual",icon:"✏️",label:"Manual"}].map(t=>(
+              <button key={t.id} onClick={()=>setScannerTab(t.id)}
+                style={{flex:1,padding:"9px 0",border:"none",borderRadius:"9px",fontFamily:S.f,fontSize:"13px",fontWeight:600,cursor:"pointer",transition:"all 0.15s",
+                  background:scannerTab===t.id?"linear-gradient(135deg,#7c3aed,#6d28d9)":"transparent",
+                  color:scannerTab===t.id?"#fff":"rgba(255,255,255,0.4)"}}>
+                {t.icon} {t.label}
+              </button>
+            ))}
           </div>
 
-          {/* Food Database Search (Edamam via Cloudflare Worker) */}
-          <div style={{marginBottom:"14px",padding:"16px",background:"rgba(139,92,246,0.05)",border:"1px solid rgba(139,92,246,0.15)",borderRadius:"14px"}}>
-            <div style={{fontSize:"11px",color:S.p,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"10px"}}>🔍 Search Food Database</div>
+          {/* Photo tab */}
+          {scannerTab==="photo"&&<div>
+            {!photoPreview ? (
+              <label style={{display:"block",padding:"28px 16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer",marginBottom:"14px"}}>
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{display:"none"}} />
+                <div style={{fontSize:"36px",marginBottom:"8px"}}>📷</div>
+                <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontWeight:600}}>Take a photo or upload</div>
+                <div style={{fontSize:"12px",color:S.mut,marginTop:"4px"}}>Point at the ingredient label</div>
+              </label>
+            ) : (
+              <div style={{padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",marginBottom:"14px"}}>
+                <img src={photoPreview} alt="Label" style={{maxWidth:"100%",maxHeight:"180px",borderRadius:"10px",display:"block",margin:"0 auto 10px"}} />
+                {ocrLoading && <div style={{textAlign:"center",padding:"8px",fontSize:"13px",color:S.mut}}>⏳ Reading label...</div>}
+                {!ocrLoading && ocrBad && (
+                  <div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"10px",padding:"12px",textAlign:"center",marginBottom:"10px"}}>
+                    <div style={{fontSize:"24px",marginBottom:"4px"}}>📷</div>
+                    <div style={{fontSize:"13px",color:"#fca5a5",fontWeight:600,marginBottom:"4px"}}>Photo quality too low</div>
+                    <div style={{fontSize:"11px",color:S.mut,marginBottom:"10px"}}>Try better lighting and hold the camera steady, focusing directly on the ingredient list.</div>
+                    <label style={{display:"inline-block",padding:"8px 18px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
+                      <input type="file" accept="image/*" capture="environment" onChange={e=>{setPhotoPreview(null);setOcrBad(false);setTxt("");setPhotoLabel("");handlePhotoUpload(e);}} style={{display:"none"}} />
+                      Retake Photo
+                    </label>
+                  </div>
+                )}
+                {!ocrLoading && !ocrBad && <div style={{fontSize:"11px",color:S.g,textAlign:"center",marginBottom:"8px"}}>✓ Ingredients extracted — review in Manual tab or scan below</div>}
+                <input value={photoLabel} onChange={e=>setPhotoLabel(e.target.value)} placeholder="Product name..."
+                  style={{width:"100%",padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"8px"}} />
+                <button onClick={()=>{setPhotoPreview(null);setOcrLoading(false);setOcrBad(false);setPhotoLabel("");setTxt("");}}
+                  style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
+              </div>
+            )}
+          </div>}
+
+          {/* Search tab */}
+          {scannerTab==="search"&&<div style={{marginBottom:"14px"}}>
             <div style={{display:"flex",gap:"8px",marginBottom:"8px"}}>
-              <input
-                value={foodQuery}
+              <input value={foodQuery}
                 onChange={e=>{setFoodQuery(e.target.value);if(foodError)setFoodError("");if(foodResults.length)setFoodResults([]);}}
                 onKeyDown={e=>e.key==="Enter"&&searchFood()}
-                placeholder="e.g. Lay's chips, Oreo, Chobani Greek yogurt..."
-                style={{flex:1,padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}}
-              />
-              <button
-                onClick={searchFood}
-                disabled={!foodQuery.trim()||foodLoading}
-                style={{padding:"10px 16px",background:foodQuery.trim()&&!foodLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"10px",color:foodQuery.trim()&&!foodLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"13px",fontWeight:700,cursor:foodQuery.trim()&&!foodLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap",minWidth:"72px"}}
-              >
+                placeholder="e.g. Oreo, Chobani Greek yogurt, Tyson nuggets..."
+                style={{flex:1,padding:"11px 13px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
+              <button onClick={searchFood} disabled={!foodQuery.trim()||foodLoading}
+                style={{padding:"11px 18px",background:foodQuery.trim()&&!foodLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"10px",color:foodQuery.trim()&&!foodLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"13px",fontWeight:700,cursor:foodQuery.trim()&&!foodLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
                 {foodLoading?"…":"Search"}
               </button>
             </div>
-            {foodError&&<div style={{fontSize:"11px",color:"#fca5a5",marginBottom:"6px",padding:"8px 10px",background:"rgba(239,68,68,0.08)",borderRadius:"8px"}}>{foodError}</div>}
-            {foodResults.length>0&&(
-              <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
-                {foodResults.map((item,i)=>(
-                  <button key={i} onClick={()=>pickFoodResult(item)}
-                    style={{padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:`1px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"10px",width:"100%"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
-                      {item.brand&&<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{item.brand}</div>}
-                    </div>
-                    <span style={{fontSize:"11px",color:S.p,fontWeight:600,flexShrink:0}}>Scan →</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {!foodLoading&&foodResults.length===0&&!foodError&&(
-              <div style={{fontSize:"11px",color:S.mut}}>Powered by Open Food Facts · 3M+ products worldwide</div>
-            )}
-          </div>
+            {foodError&&<div style={{fontSize:"12px",color:"#fca5a5",marginBottom:"8px",padding:"9px 12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"8px"}}>{foodError}</div>}
+            {foodResults.length>0&&<div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              {foodResults.map((item,i)=>(
+                <button key={i} onClick={()=>pickFoodResult(item)}
+                  style={{padding:"11px 13px",background:"rgba(255,255,255,0.03)",border:`1px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"10px",width:"100%"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
+                    {item.brand&&<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{item.brand}</div>}
+                  </div>
+                  <span style={{fontSize:"11px",color:S.p,fontWeight:600,flexShrink:0}}>Scan →</span>
+                </button>
+              ))}
+            </div>}
+            {!foodLoading&&foodResults.length===0&&!foodError&&<div style={{padding:"20px",textAlign:"center",background:S.card,borderRadius:"12px",border:`1px solid ${S.brd}`}}>
+              <div style={{fontSize:"28px",marginBottom:"6px"}}>🔍</div>
+              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.4)"}}>Search the Edamam food database to scan a product</div>
+            </div>}
+          </div>}
 
-          <div style={{fontSize:"11px",color:S.mut,textAlign:"center",marginBottom:"10px",letterSpacing:"0.5px"}}>— or paste ingredients manually —</div>
+          {/* Manual tab */}
+          {scannerTab==="manual"&&<div style={{marginBottom:"14px"}}>
+            <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="Paste or type ingredient list here..."
+              style={{width:"100%",minHeight:"130px",padding:"14px",background:"rgba(255,255,255,0.04)",border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:"#e8e6f0",fontFamily:S.f,fontSize:"14px",lineHeight:1.6,resize:"vertical",outline:"none",boxSizing:"border-box"}} />
+          </div>}
 
-          <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="Paste or type ingredient list here..."
-            style={{width:"100%",minHeight:"110px",padding:"14px",background:"rgba(255,255,255,0.04)",border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:"#e8e6f0",fontFamily:S.f,fontSize:"14px",lineHeight:1.5,resize:"vertical",outline:"none",boxSizing:"border-box"}} />
-          <button onClick={()=>txt.trim()&&doScan(txt, photoLabel.trim() || "")} disabled={!txt.trim()}
-            style={{width:"100%",marginTop:"14px",padding:"14px",background:txt.trim()?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:txt.trim()?"#fff":"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:txt.trim()?"pointer":"default",fontFamily:S.f}}>
+          {/* Scan button — always shown when text is ready */}
+          {txt.trim()&&!ocrBad&&<button onClick={()=>doScan(txt, photoLabel.trim()||"")}
+            style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 20px rgba(124,58,237,0.35)"}}>
             🔬 Scan for Allergens
-          </button>
+          </button>}
+          {!txt.trim()&&scannerTab!=="search"&&<button disabled
+            style={{width:"100%",padding:"15px",background:"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:"default",fontFamily:S.f}}>
+            🔬 Scan for Allergens
+          </button>}
         </div>}
 
         {/* ═══ RESULTS ═══ */}
@@ -1045,6 +1140,97 @@ function App() {
           )}
         </div>}
 
+        {/* ═══ NUTRITION ═══ */}
+        {pg==="nutrition"&&<div>
+          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Nutrition Lookup</h1>
+          <p style={{color:S.mut,fontSize:"13px",marginBottom:"16px",lineHeight:1.5}}>Search any food to see if you can eat it — allergen check + nutrition info.</p>
+          <div style={{display:"flex",gap:"8px",marginBottom:"12px"}}>
+            <input value={nutQuery} onChange={e=>{setNutQuery(e.target.value);if(nutError)setNutError("");}} onKeyDown={e=>e.key==="Enter"&&searchNutrition()}
+              placeholder="e.g. Greek yogurt, almonds, cheddar cheese..."
+              style={{flex:1,padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${nutError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"12px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
+            <button onClick={searchNutrition} disabled={!nutQuery.trim()||nutLoading}
+              style={{padding:"12px 20px",background:nutQuery.trim()&&!nutLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:nutQuery.trim()&&!nutLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"14px",fontWeight:700,cursor:nutQuery.trim()&&!nutLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
+              {nutLoading?"…":"Search"}
+            </button>
+          </div>
+          {nutError&&<div style={{fontSize:"12px",color:"#fca5a5",marginBottom:"12px",padding:"10px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"10px"}}>{nutError}</div>}
+          {nutSelected ? (
+            <div>
+              <button onClick={()=>setNutSelected(null)} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back to results</button>
+              <div style={{padding:"16px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",marginBottom:"12px"}}>
+                <div style={{fontSize:"18px",fontWeight:800,color:"#fff",fontFamily:S.sf,marginBottom:"2px"}}>{nutSelected.label}</div>
+                {nutSelected.brand&&<div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{nutSelected.brand}</div>}
+                {/* Allergen status */}
+                {nutSelected.ingredients ? (()=>{
+                  const scan = runScan(nutSelected.ingredients, prof.allergens);
+                  const color = scan.overall==="safe"?S.g:scan.overall==="caution"?S.y:S.r;
+                  const icon = scan.overall==="safe"?"✅":scan.overall==="caution"?"⚠️":"🚫";
+                  const label = scan.overall==="safe"?"Safe for you":scan.overall==="caution"?"Use caution":"Contains your allergens";
+                  return(
+                    <div style={{padding:"12px",borderRadius:"10px",background:`${color}11`,border:`1px solid ${color}33`,marginBottom:"12px",display:"flex",alignItems:"center",gap:"10px"}}>
+                      <span style={{fontSize:"22px"}}>{icon}</span>
+                      <div><div style={{fontWeight:700,fontSize:"13px",color}}>{label}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{scan.summary}</div></div>
+                    </div>
+                  );
+                })() : <div style={{padding:"10px 12px",borderRadius:"8px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,marginBottom:"12px"}}>No ingredient list available for allergen check.</div>}
+                {/* Nutrients */}
+                {Object.keys(nutSelected.nutrients).length>0&&(()=>{
+                  const n = nutSelected.nutrients;
+                  const macros = [
+                    {l:"Calories",v:Math.round(n.ENERC_KCAL||0),u:"kcal",color:"#f59e0b"},
+                    {l:"Protein",v:Math.round(n.PROCNT||0),u:"g",color:"#22c55e"},
+                    {l:"Fat",v:Math.round(n.FAT||0),u:"g",color:"#ef4444"},
+                    {l:"Carbs",v:Math.round(n.CHOCDF||0),u:"g",color:"#3b82f6"},
+                  ];
+                  return(
+                    <div>
+                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"8px"}}>Nutrition per 100g</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                        {macros.map(m=>(
+                          <div key={m.l} style={{padding:"12px",borderRadius:"10px",background:`${m.color}11`,border:`1px solid ${m.color}22`,textAlign:"center"}}>
+                            <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:m.color}}>{m.v}<span style={{fontSize:"11px",fontWeight:400,marginLeft:"2px"}}>{m.u}</span></div>
+                            <div style={{fontSize:"10px",color:S.mut,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"2px"}}>{m.l}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+              {nutSelected.ingredients&&<button onClick={()=>{doScan(nutSelected.ingredients, nutSelected.label);}}
+                style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
+                🔬 Full Allergen Scan
+              </button>}
+            </div>
+          ) : nutResults.length>0 ? (
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              {nutResults.map((item,i)=>{
+                const hasNut = Object.keys(item.nutrients).length>0;
+                const cal = item.nutrients.ENERC_KCAL ? Math.round(item.nutrients.ENERC_KCAL)+"kcal" : null;
+                const canScan = !!item.ingredients;
+                const scanResult = canScan ? runScan(item.ingredients, prof.allergens) : null;
+                const statusColor = scanResult ? (scanResult.overall==="safe"?S.g:scanResult.overall==="caution"?S.y:S.r) : S.brd;
+                return(
+                  <button key={i} onClick={()=>setNutSelected(item)}
+                    style={{padding:"12px 14px",background:S.card,border:`1px solid ${statusColor}33`,borderRadius:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"12px",width:"100%"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
+                      <div style={{fontSize:"10px",color:S.mut,marginTop:"2px"}}>{item.brand||item.category||"Food item"}{cal&&<span style={{marginLeft:"8px",color:"#f59e0b"}}>{cal}</span>}</div>
+                    </div>
+                    {scanResult&&<span style={{fontSize:"14px"}}>{scanResult.overall==="safe"?"✅":scanResult.overall==="caution"?"⚠️":"🚫"}</span>}
+                    <span style={{fontSize:"11px",color:S.mut}}>→</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : !nutLoading&&(
+            <div style={{padding:"32px 20px",textAlign:"center",background:S.card,borderRadius:"14px",border:`1px solid ${S.brd}`}}>
+              <div style={{fontSize:"40px",marginBottom:"8px"}}>🍎</div>
+              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>Search any food to check if it's safe for you and see its nutritional info</div>
+            </div>
+          )}
+        </div>}
+
         {/* ═══ DINING ═══ */}
         {pg==="dining"&&!viewChain&&<div>
           <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Dining Guide</h1>
@@ -1076,8 +1262,9 @@ function App() {
           {locSet&&!locLoading&&<>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
               <div style={{fontSize:"12px",color:S.p,fontWeight:600}}>📍 Near "{locSet}" — {nearbyResults.length} locations {usingRealData&&<span style={{fontSize:"10px",color:S.g,marginLeft:"4px"}}>(live data)</span>}</div>
-              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setShowSuggestions(false);setLocError("");setUsingRealData(false);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f}}>Clear</button>
+              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setShowSuggestions(false);setLocError("");setUsingRealData(false);setMapCenter(null);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f}}>Clear</button>
             </div>
+            {mapCenter&&<div ref={mapRef} style={{height:"220px",borderRadius:"14px",marginBottom:"14px",overflow:"hidden",border:`1px solid ${S.brd}`,zIndex:0}} />}
             {nearbyResults.map(nr=>{
               const {safe,danger,pct}=chainScore(nr);
               const color=pct>=70?S.g:pct>=40?S.y:S.r;
