@@ -827,7 +827,7 @@ function App() {
     setTxt("");
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=DEMO_KEY&pageSize=8&dataType=Branded`
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&dataType=Branded`
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
