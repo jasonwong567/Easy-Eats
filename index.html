@@ -21,10 +21,13 @@
     @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
 
     /* Global interactive states */
-    button { transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease; }
-    button:active:not(:disabled) { transform: scale(0.97); }
+    button { transition: opacity 0.18s ease, transform 0.12s ease, background 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease; }
+    button:not(:disabled):hover { filter: brightness(1.04); transform: translateY(-1px); }
+    button:active:not(:disabled) { transform: scale(0.96) translateY(0px) !important; filter: brightness(0.97) !important; }
     input, textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
     input:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(0,82,255,0.12) !important; outline: none; }
+    /* Primary blue button pulse on hover */
+    .btn-primary:not(:disabled):hover { box-shadow: 0 6px 28px rgba(0,82,255,0.32) !important; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 3px; height: 3px; }
@@ -1056,15 +1059,13 @@ function App() {
               <span style={{width:"7px",height:"7px",borderRadius:"50%",background:S.p,display:"inline-block",flexShrink:0}} />
               <span style={{fontSize:"11px",color:S.text2,fontWeight:700,fontFamily:S.mono,letterSpacing:"1px",textTransform:"uppercase"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</span>
             </div>
-            {/* Big hero headline with blue accent word + underline */}
-            <h1 style={{fontFamily:S.sf,fontSize:"clamp(28px,6vw,40px)",fontWeight:400,color:S.text,margin:"0 0 6px",letterSpacing:"-0.5px",lineHeight:1.15}}>
-              Hello, {prof.name} —<br/>
-              <span style={{color:S.p,position:"relative",display:"inline-block"}}>
-                stay safe
-                <span style={{position:"absolute",bottom:"-4px",left:0,right:0,height:"4px",background:`linear-gradient(90deg,${S.p},${S.p2})`,borderRadius:"2px",opacity:0.5}} />
-              </span> out there.
+            {/* Big hero headline */}
+            <h1 style={{fontFamily:S.sf,fontSize:"clamp(30px,6vw,42px)",fontWeight:400,color:S.text,margin:"0 0 6px",letterSpacing:"-0.5px",lineHeight:1.15}}>
+              Hello, {prof.name} 👋
             </h1>
-            <p style={{color:S.mut,fontSize:"14px",margin:"16px 0 0",fontWeight:400,lineHeight:1.5}}>Tracking {prof.allergens.length + (prof.customAllergens||[]).length} allergen{(prof.allergens.length + (prof.customAllergens||[]).length)!==1?"s":""}</p>
+            <p style={{fontSize:"15px",color:S.mut,margin:"10px 0 0",fontWeight:400,lineHeight:1.5}}>
+              Tracking <span style={{color:S.p,fontWeight:700}}>{prof.allergens.length + (prof.customAllergens||[]).length} allergen{(prof.allergens.length + (prof.customAllergens||[]).length)!==1?"s":""}</span> · eat safe, everywhere.
+            </p>
             <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"12px"}}>
               {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return a?<span key={id} style={{padding:"4px 11px",background:"rgba(255,255,255,0.9)",border:`1px solid ${S.brd}`,borderRadius:"20px",fontSize:"11px",color:S.text2,fontWeight:600,boxShadow:S.shadowSm}}>{a.icon} {a.label}</span>:null;})}
             </div>
@@ -1385,10 +1386,21 @@ function App() {
                   );
                 })()}
               </div>
-              <button onClick={()=>{doScan(nutSelected.ingredients||nutSelected.label, nutSelected.label);}}
-                style={{width:"100%",padding:"15px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
-                🔬 Full Allergen Scan
-              </button>
+              {nutSelected.ingredients ? (
+                <button onClick={()=>{doScan(nutSelected.ingredients, nutSelected.label);}}
+                  style={{width:"100%",padding:"15px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
+                  🔬 Full Allergen Scan
+                </button>
+              ) : (
+                <div style={{padding:"14px 16px",borderRadius:"14px",background:S.ybg,border:`1px solid ${S.ybrd}`,textAlign:"center"}}>
+                  <div style={{fontSize:"13px",color:S.y,fontWeight:600,marginBottom:"4px"}}>No ingredient list in database</div>
+                  <div style={{fontSize:"12px",color:S.mut,marginBottom:"12px"}}>For a full allergen check, scan the product's barcode.</div>
+                  <button onClick={()=>{nav("scanner");setScannerTab("photo");setFoodNoIngredients(nutSelected.label);}}
+                    style={{padding:"10px 22px",background:S.pGrad,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>
+                    Scan Barcode →
+                  </button>
+                </div>
+              )}
             </div>
           ) : nutResults.length>0 ? (
             <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
@@ -1402,7 +1414,9 @@ function App() {
                       <div style={{fontWeight:600,fontSize:"14px",color:S.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
                       <div style={{fontSize:"11px",color:S.mut,marginTop:"3px",fontFamily:S.mono}}>{item.brand||"Food item"}{cal&&<span style={{marginLeft:"8px",color:S.y,fontWeight:600}}>{cal}</span>}</div>
                     </div>
-                    <span style={{fontSize:"16px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>
+                    {item.ingredients
+                    ? <span style={{fontSize:"16px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>
+                    : <span style={{fontSize:"11px",color:S.mut2,fontFamily:S.mono,fontWeight:600}}>NO LIST</span>}
                     <span style={{fontSize:"13px",color:S.mut2}}>→</span>
                   </button>
                 );
@@ -1523,11 +1537,12 @@ function App() {
         {pg==="profile"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
           <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 16px",letterSpacing:"-0.3px"}}>Your Profile</h1>
 
-          {/* Profile card — inverted dark */}
-          <div style={{padding:"22px",borderRadius:"20px",background:S.bgDark,marginBottom:"14px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"4px"}}>
-              <div style={{width:"50px",height:"50px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",fontWeight:700,color:"#fff",boxShadow:S.shadowBlue,flexShrink:0}}>{prof.name.charAt(0).toUpperCase()}</div>
-              <div><div style={{fontWeight:700,fontSize:"18px",color:"#fff"}}>{prof.name}</div><div style={{fontSize:"12px",color:"rgba(255,255,255,0.45)",fontFamily:S.mono}}>@{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div></div>
+          {/* Profile card — light */}
+          <div style={{padding:"22px",borderRadius:"20px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px",boxShadow:S.shadowSm,display:"flex",alignItems:"center",gap:"16px"}}>
+            <div style={{width:"54px",height:"54px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px",fontWeight:700,color:"#fff",boxShadow:S.shadowBlue,flexShrink:0}}>{prof.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div style={{fontWeight:700,fontSize:"19px",color:S.text}}>{prof.name}</div>
+              <div style={{fontSize:"12px",color:S.mut,fontFamily:S.mono,marginTop:"2px"}}>@{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div>
             </div>
           </div>
 
@@ -1580,45 +1595,45 @@ function App() {
             </div>
           </div>
 
-          {/* Emergency Card */}
-          <div style={{padding:"22px",borderRadius:"18px",background:S.bgDark,marginBottom:"14px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
+          {/* Emergency Card — light red tint */}
+          <div style={{padding:"22px",borderRadius:"18px",background:S.card,border:`1.5px solid ${S.rbrd}`,marginBottom:"14px",boxShadow:S.shadowSm}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
               <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
                 <span style={{fontSize:"16px"}}>🚨</span>
-                <div style={{fontSize:"11px",color:"rgba(239,68,68,0.9)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:S.mono}}>Emergency Card</div>
+                <div style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:S.mono}}>Emergency Card</div>
               </div>
-              <button onClick={()=>{setShowEmergencyEdit(!showEmergencyEdit);if(!showEmergencyEdit){setEmergencyContact(prof.emergencyContact||"");setEmergencyPhone(prof.emergencyPhone||"");}}} style={{background:"rgba(0,82,255,0.15)",border:"1px solid rgba(0,82,255,0.25)",borderRadius:"8px",color:S.p2,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,padding:"4px 12px"}}>{showEmergencyEdit?"Cancel":"Edit"}</button>
+              <button onClick={()=>{setShowEmergencyEdit(!showEmergencyEdit);if(!showEmergencyEdit){setEmergencyContact(prof.emergencyContact||"");setEmergencyPhone(prof.emergencyPhone||"");}}} style={{background:S.pbg,border:`1px solid ${S.pBrd}`,borderRadius:"8px",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,padding:"5px 14px"}}>{showEmergencyEdit?"Cancel":"Edit"}</button>
             </div>
             {showEmergencyEdit?(
               <div>
-                <label style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",display:"block",marginBottom:"6px",fontFamily:S.mono}}>Emergency Contact Name</label>
+                <label style={{fontSize:"11px",color:S.mut,display:"block",marginBottom:"6px",fontFamily:S.mono,fontWeight:600,textTransform:"uppercase",letterSpacing:"1px"}}>Emergency Contact Name</label>
                 <input value={emergencyContact} onChange={e=>setEmergencyContact(e.target.value)} placeholder="e.g. Mom, Dr. Smith"
-                  style={{width:"100%",padding:"11px 13px",background:"rgba(255,255,255,0.06)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
-                <label style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",display:"block",marginBottom:"6px",fontFamily:S.mono}}>Emergency Phone</label>
+                  style={{width:"100%",padding:"11px 13px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
+                <label style={{fontSize:"11px",color:S.mut,display:"block",marginBottom:"6px",fontFamily:S.mono,fontWeight:600,textTransform:"uppercase",letterSpacing:"1px"}}>Emergency Phone</label>
                 <input value={emergencyPhone} onChange={e=>setEmergencyPhone(e.target.value)} placeholder="(555) 123-4567"
-                  style={{width:"100%",padding:"11px 13px",background:"rgba(255,255,255,0.06)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
-                <button onClick={saveEmergency} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#16a34a,#15803d)",border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Save Emergency Info</button>
+                  style={{width:"100%",padding:"11px 13px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
+                <button onClick={saveEmergency} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#16a34a,#15803d)",border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Save Emergency Info</button>
               </div>
             ):(
               <div>
-                <div style={{padding:"16px",borderRadius:"14px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:"10px"}}>
-                  <div style={{fontSize:"17px",fontWeight:700,color:"#fff",marginBottom:"8px"}}>{prof.name}</div>
-                  <div style={{fontSize:"12px",color:"rgba(255,255,255,0.5)",marginBottom:"10px"}}>I have the following food allergies:</div>
+                <div style={{padding:"16px",borderRadius:"14px",background:S.rbg,border:`1px solid ${S.rbrd}`,marginBottom:"10px"}}>
+                  <div style={{fontSize:"17px",fontWeight:700,color:S.text,marginBottom:"8px"}}>{prof.name}</div>
+                  <div style={{fontSize:"12px",color:S.mut,marginBottom:"10px"}}>I have the following food allergies:</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"12px"}}>
-                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 11px",background:"rgba(220,38,38,0.12)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:"20px",fontSize:"12px",color:"#f87171",fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
+                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 11px",background:S.rbg,border:`1px solid ${S.rbrd}`,borderRadius:"20px",fontSize:"12px",color:S.r,fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
                   </div>
                   {(prof.emergencyContact||prof.emergencyPhone)&&(
-                    <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",paddingTop:"10px",marginTop:"4px"}}>
-                      <div style={{fontSize:"10px",color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"5px",fontFamily:S.mono}}>Emergency Contact</div>
-                      {prof.emergencyContact&&<div style={{fontSize:"14px",color:"#fff",fontWeight:600}}>{prof.emergencyContact}</div>}
-                      {prof.emergencyPhone&&<div style={{fontSize:"13px",color:S.p2,fontFamily:S.mono}}>{prof.emergencyPhone}</div>}
+                    <div style={{borderTop:`1px solid ${S.brd}`,paddingTop:"10px",marginTop:"4px"}}>
+                      <div style={{fontSize:"10px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"5px",fontFamily:S.mono,fontWeight:700}}>Emergency Contact</div>
+                      {prof.emergencyContact&&<div style={{fontSize:"14px",color:S.text,fontWeight:700}}>{prof.emergencyContact}</div>}
+                      {prof.emergencyPhone&&<div style={{fontSize:"13px",color:S.p,fontFamily:S.mono,marginTop:"2px"}}>{prof.emergencyPhone}</div>}
                     </div>
                   )}
                   {!prof.emergencyContact&&!prof.emergencyPhone&&(
-                    <div style={{fontSize:"11px",color:"rgba(255,255,255,0.35)",fontStyle:"italic"}}>Tap Edit to add an emergency contact</div>
+                    <div style={{fontSize:"11px",color:S.mut,fontStyle:"italic"}}>Tap Edit to add an emergency contact</div>
                   )}
                 </div>
-                <div style={{fontSize:"10px",color:"rgba(255,255,255,0.35)",textAlign:"center",fontFamily:S.mono}}>Show this card to restaurant staff or anyone preparing your food</div>
+                <div style={{fontSize:"10px",color:S.mut,textAlign:"center",fontFamily:S.mono}}>Show this card to restaurant staff or anyone preparing your food</div>
               </div>
             )}
           </div>
