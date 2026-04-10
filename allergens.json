@@ -289,6 +289,126 @@
         "sulphites",
         "sulphur dioxide"
       ]
+    },
+    {
+      "id": "corn",
+      "label": "Corn",
+      "icon": "🌽",
+      "v": [
+        "corn",
+        "corn starch",
+        "cornstarch",
+        "corn syrup",
+        "high fructose corn syrup",
+        "hfcs",
+        "cornmeal",
+        "corn flour",
+        "corn oil",
+        "dextrose",
+        "dextrin",
+        "maltodextrin",
+        "hominy",
+        "grits",
+        "polenta",
+        "maize",
+        "masa",
+        "popcorn",
+        "cornmeal",
+        "corn extract",
+        "modified corn starch"
+      ]
+    },
+    {
+      "id": "lupin",
+      "label": "Lupin",
+      "icon": "🌿",
+      "v": [
+        "lupin",
+        "lupine",
+        "lupin flour",
+        "lupin seed",
+        "lupin bean",
+        "lupin protein",
+        "lupin extract"
+      ]
+    },
+    {
+      "id": "coconut",
+      "label": "Coconut",
+      "icon": "🥥",
+      "v": [
+        "coconut",
+        "coconut milk",
+        "coconut cream",
+        "coconut oil",
+        "coconut flour",
+        "coconut water",
+        "coconut sugar",
+        "coconut flakes",
+        "desiccated coconut",
+        "creamed coconut",
+        "coconut butter",
+        "coconut extract",
+        "coconut aminos"
+      ]
+    },
+    {
+      "id": "garlic",
+      "label": "Garlic",
+      "icon": "🧄",
+      "v": [
+        "garlic",
+        "garlic powder",
+        "garlic salt",
+        "garlic extract",
+        "garlic oil",
+        "garlic flakes",
+        "roasted garlic",
+        "black garlic"
+      ]
+    },
+    {
+      "id": "onion",
+      "label": "Onion / Alliums",
+      "icon": "🧅",
+      "v": [
+        "onion",
+        "onion powder",
+        "onion salt",
+        "onion extract",
+        "shallot",
+        "leek",
+        "chive",
+        "scallion",
+        "green onion",
+        "spring onion",
+        "dried onion",
+        "onion flakes"
+      ]
+    },
+    {
+      "id": "alcohol",
+      "label": "Alcohol",
+      "icon": "🍺",
+      "v": [
+        "alcohol",
+        "ethanol",
+        "wine",
+        "beer",
+        "spirits",
+        "bourbon",
+        "whiskey",
+        "vodka",
+        "rum",
+        "sake",
+        "mirin",
+        "brandy",
+        "liqueur",
+        "vanilla extract",
+        "wine vinegar",
+        "beer batter",
+        "hard cider"
+      ]
     }
   ],
   "FP": [

@@ -70,30 +70,41 @@ const AMBRef = { current: [] };
 const CITIESRef = { current: [] };
 
 // ─── ANALYSIS ENGINE ───
-function runScan(text, ua) {
+// ua = array of allergen IDs, customAllergens = array of custom allergen strings
+function runScan(text, ua, customAllergens) {
     const AL = ALRef.current.length ? ALRef.current : [];
     const FP = FPRef.current.length ? FPRef.current : [];
     const AMB = AMBRef.current.length ? AMBRef.current : [];
   const lower = text.toLowerCase();
   const raw = lower.replace(/\([^)]*\)/g, m => m.replace(/,/g, "§")).split(/[,;]/).map(s => s.replace(/§/g, ",").trim()).filter(s => s.length > 1);
   const items = []; const dSet = new Set(); const cSet = new Set();
+  const custom = (customAllergens||[]).map(c => c.toLowerCase().trim()).filter(Boolean);
   raw.forEach(ing => {
     const c = ing.replace(/^\d+%?\s*(or less of:?\s*)?/i,"").replace(/[()]/g," ").replace(/\s+/g," ").trim();
     if (!c) return;
     let m = false;
     const sk = new Set();
     FP.forEach(r => { if (c.includes(r.p)) r.s.forEach(s => sk.add(s)); });
-    for (const aid of ua) {
-      if (sk.has(aid)) continue;
-      const a = AL.find(x => x.id === aid);
-      if (!a) continue;
-      for (const v of a.v) {
-        if (c.includes(v)) {
-          items.push({ingredient:c,status:"danger",allergen:a.label,reason:v===c?`Direct ${a.label.toLowerCase()} allergen`:`Contains "${v}" — ${a.label.toLowerCase()} derivative`});
-          dSet.add(aid); m = true; break;
-        }
+    // Check custom allergens first
+    for (const cv of custom) {
+      if (c.includes(cv)) {
+        items.push({ingredient:c,status:"danger",allergen:cv,reason:`Contains "${cv}" — custom allergen`});
+        dSet.add("custom:"+cv); m = true; break;
       }
-      if (m) break;
+    }
+    if (!m) {
+      for (const aid of ua) {
+        if (sk.has(aid)) continue;
+        const a = AL.find(x => x.id === aid);
+        if (!a) continue;
+        for (const v of a.v) {
+          if (c.includes(v)) {
+            items.push({ingredient:c,status:"danger",allergen:a.label,reason:v===c?`Direct ${a.label.toLowerCase()} allergen`:`Contains "${v}" — ${a.label.toLowerCase()} derivative`});
+            dSet.add(aid); m = true; break;
+          }
+        }
+        if (m) break;
+      }
     }
     if (!m) {
       for (const amb of AMB) {
@@ -109,7 +120,8 @@ function runScan(text, ua) {
     if (!m) items.push({ingredient:c,status:"safe",allergen:null,reason:"No match"});
   });
   let overall = "safe", summary = "";
-  if (dSet.size > 0) { overall = "danger"; summary = `Contains ${[...dSet].map(id=>(AL.find(function(a){return a.id===id})||{}).label).join(", ")} allergens.`; }
+  const dangerLabels = [...dSet].map(id => id.startsWith("custom:") ? id.replace("custom:","") : (AL.find(function(a){return a.id===id})||{}).label).filter(Boolean);
+  if (dSet.size > 0) { overall = "danger"; summary = `Contains ${dangerLabels.join(", ")} allergens.`; }
   else if (cSet.size > 0) { overall = "caution"; summary = "Some ingredients may contain hidden allergen derivatives."; }
   else summary = "No allergens detected for your profile.";
   return { overall, items, summary };
@@ -156,6 +168,8 @@ function App() {
   const [authPass, setAuthPass] = useState("");
   const [authName, setAuthName] = useState("");
   const [authAllergens, setAuthAllergens] = useState([]);
+  const [authCustom, setAuthCustom] = useState("");
+  const [authCustomList, setAuthCustomList] = useState([]);
   const [authError, setAuthError] = useState("");
   const [showPass, setShowPass] = useState(false);
 
@@ -173,6 +187,8 @@ function App() {
   const [nearbyResults, setNearbyResults] = useState([]);
   const [editingAllergens, setEditingAllergens] = useState(false);
   const [editAllergens, setEditAllergens] = useState([]);
+  const [editCustomList, setEditCustomList] = useState([]);
+  const [editCustomInput, setEditCustomInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [emergencyContact, setEmergencyContact] = useState("");
@@ -293,16 +309,16 @@ function App() {
   };
 
   const finishSignup = () => {
-    if (authAllergens.length === 0) { setAuthError("Select at least one allergen."); return; }
+    if (authAllergens.length === 0 && authCustomList.length === 0) { setAuthError("Select at least one allergen."); return; }
     const u = authUser.trim().toLowerCase();
-    const newProf = { password: authPass, name: authName.trim(), allergens: authAllergens, history: [], createdAt: new Date().toISOString() };
+    const newProf = { password: authPass, name: authName.trim(), allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
     const newUsers = { ...usersRef.current, [u]: newProf };
     setUsers(newUsers);
     setCurrentUser(u);
     setProf(newProf);
     saveUsers(newUsers);
     saveSession(u);
-    setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthError("");
+    setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
     setPg("home");
   };
 
@@ -330,8 +346,8 @@ function App() {
   };
 
   const saveAllergenEdits = () => {
-    if (editAllergens.length === 0) { return; }
-    const newProf = { ...prof, allergens: editAllergens };
+    if (editAllergens.length === 0 && editCustomList.length === 0) { return; }
+    const newProf = { ...prof, allergens: editAllergens, customAllergens: editCustomList };
     const newUsers = { ...usersRef.current, [currentUser]: newProf };
     setProf(newProf);
     setUsers(newUsers);
@@ -345,7 +361,7 @@ function App() {
   const doScan = (text, label, fromPage) => {
     if (!prof) return;
     if (!text || !text.trim()) return;
-    const r = runScan(text, prof.allergens);
+    const r = runScan(text, prof.allergens, prof.customAllergens);
     const autoLabel = label || text.trim().split(/[,;]/)[0].replace(/\([^)]*\)/g,"").trim().slice(0,50);
     const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
     saveProf({ history: [entry, ...(prof.history||[])].slice(0,50) });
@@ -363,7 +379,7 @@ function App() {
   // Re-run scan against current allergens so history stays accurate after profile changes
   const liveResult = (h) => {
     if (h.ingredients && prof && prof.allergens) {
-      const r = runScan(h.ingredients, prof.allergens);
+      const r = runScan(h.ingredients, prof.allergens, prof.customAllergens);
       return { overall: r.overall, items: r.items, summary: r.summary, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length };
     }
     return { overall: h.overall, items: h.items||[], summary: h.summary, dc: h.dc||0, cc: h.cc||0, sc: h.sc||0 };
@@ -901,10 +917,18 @@ function App() {
                 </button>
               );})}
             </div>
+            <div style={{marginTop:"12px"}}>
+              <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"6px"}}>Add a custom allergen</div>
+              <div style={{display:"flex",gap:"6px"}}>
+                <input value={authCustom} onChange={e=>setAuthCustom(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none"}} />
+                <button onClick={()=>{if(authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} style={{padding:"8px 12px",background:S.pbg,border:`1px solid rgba(139,92,246,0.4)`,borderRadius:"8px",color:"#c4b5fd",fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Add</button>
+              </div>
+              {authCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginTop:"8px"}}>{authCustomList.map((c,i)=><span key={i} style={{padding:"3px 8px",background:"rgba(139,92,246,0.15)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:"20px",fontSize:"11px",color:"#c4b5fd",display:"flex",alignItems:"center",gap:"4px"}}>{c}<button onClick={()=>setAuthCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#a78bfa",cursor:"pointer",fontSize:"12px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
+            </div>
             {authError&&<div style={{marginTop:"12px",padding:"10px 14px",borderRadius:"8px",background:"rgba(239,68,68,0.1)",color:"#fca5a5",fontSize:"12px"}}>{authError}</div>}
-            <button onClick={finishSignup} disabled={authAllergens.length===0}
-              style={{width:"100%",marginTop:"16px",padding:"13px",background:authAllergens.length?"linear-gradient(135deg,#22c55e,#16a34a)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:authAllergens.length?"#fff":"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:authAllergens.length?"pointer":"default",fontFamily:S.f}}>
-              Create Account ({authAllergens.length} allergens)
+            <button onClick={finishSignup} disabled={authAllergens.length===0&&authCustomList.length===0}
+              style={{width:"100%",marginTop:"16px",padding:"13px",background:(authAllergens.length||authCustomList.length)?"linear-gradient(135deg,#22c55e,#16a34a)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:(authAllergens.length||authCustomList.length)?"#fff":"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:(authAllergens.length||authCustomList.length)?"pointer":"default",fontFamily:S.f}}>
+              Create Account ({authAllergens.length + authCustomList.length} allergens)
             </button>
           </div>
         ):(
@@ -1245,7 +1269,7 @@ function App() {
                 {/* Allergen status — use ingredients if available, fall back to food name */}
                 {(()=>{
                   const scanText = nutSelected.ingredients || nutSelected.label;
-                  const scan = runScan(scanText, prof.allergens);
+                  const scan = runScan(scanText, prof.allergens, prof.customAllergens);
                   const color = scan.overall==="safe"?S.g:scan.overall==="caution"?S.y:S.r;
                   const icon = scan.overall==="safe"?"✅":scan.overall==="caution"?"⚠️":"🚫";
                   const lbl = scan.overall==="safe"?"Safe for you":scan.overall==="caution"?"Use caution":"Contains your allergens";
@@ -1315,7 +1339,7 @@ function App() {
                 const hasNut = Object.keys(item.nutrients).length>0;
                 const cal = item.nutrients.ENERC_KCAL ? Math.round(item.nutrients.ENERC_KCAL)+"kcal" : null;
                 const canScan = !!item.ingredients;
-                const scanResult = canScan ? runScan(item.ingredients, prof.allergens) : null;
+                const scanResult = canScan ? runScan(item.ingredients, prof.allergens, prof.customAllergens) : null;
                 const statusColor = scanResult ? (scanResult.overall==="safe"?S.g:scanResult.overall==="caution"?S.y:S.r) : S.brd;
                 return(
                   <button key={i} onClick={()=>setNutSelected(item)}
@@ -1324,7 +1348,7 @@ function App() {
                       <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
                       <div style={{fontSize:"10px",color:S.mut,marginTop:"2px"}}>{item.brand||item.category||"Food item"}{cal&&<span style={{marginLeft:"8px",color:"#f59e0b"}}>{cal}</span>}</div>
                     </div>
-                    {(()=>{const sr=runScan(item.ingredients||item.label,prof.allergens);return <span style={{fontSize:"14px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>})()}
+                    {(()=>{const sr=runScan(item.ingredients||item.label,prof.allergens,prof.customAllergens);return <span style={{fontSize:"14px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>})()}
                     <span style={{fontSize:"11px",color:S.mut}}>→</span>
                   </button>
                 );
@@ -1444,7 +1468,7 @@ function App() {
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
               <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px"}}>Allergens</div>
               {!editingAllergens?
-                <button onClick={()=>{setEditAllergens([...prof.allergens]);setEditingAllergens(true);}} style={{background:"none",border:"none",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Edit</button>:
+                <button onClick={()=>{setEditAllergens([...prof.allergens]);setEditCustomList([...(prof.customAllergens||[])]);setEditCustomInput("");setEditingAllergens(true);}} style={{background:"none",border:"none",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Edit</button>:
                 <div style={{display:"flex",gap:"8px"}}>
                   <button onClick={()=>setEditingAllergens(false)} style={{background:"none",border:"none",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f}}>Cancel</button>
                   <button onClick={saveAllergenEdits} disabled={editAllergens.length===0} style={{background:"none",border:"none",color:editAllergens.length===0?S.mut:S.g,fontSize:"12px",cursor:editAllergens.length===0?"default":"pointer",fontFamily:S.f,fontWeight:600}}>Save{editAllergens.length===0?" (select 1+)":""}</button>
@@ -1452,14 +1476,25 @@ function App() {
               }
             </div>
             {!editingAllergens?
-              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>{prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 10px",background:S.pbg,border:"1px solid rgba(139,92,246,0.3)",borderRadius:"8px",fontSize:"11px",color:"#c4b5fd"}}>{a&&a.icon} {a&&a.label}</span>;})}</div>:
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-                {AL.map(a=>{const sel=editAllergens.includes(a.id);return(
-                  <button key={a.id} onClick={()=>setEditAllergens(p=>sel?p.filter(x=>x!==a.id):[...p,a.id])}
-                    style={{padding:"8px",background:sel?S.pbg:S.card,border:sel?"1.5px solid rgba(139,92,246,0.5)":`1.5px solid ${S.brd}`,borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:S.f,color:sel?"#c4b5fd":"rgba(255,255,255,0.4)",fontSize:"11px"}}>
-                    <span style={{fontSize:"16px"}}>{a.icon}</span>{a.label}{sel&&<span style={{marginLeft:"auto",color:S.p}}>✓</span>}
-                  </button>
-                );})}
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+                {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 10px",background:S.pbg,border:"1px solid rgba(139,92,246,0.3)",borderRadius:"8px",fontSize:"11px",color:"#c4b5fd"}}>{a&&a.icon} {a&&a.label}</span>;})}
+                {(prof.customAllergens||[]).map((c,i)=><span key={"c"+i} style={{padding:"5px 10px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"8px",fontSize:"11px",color:"#fcd34d"}}>✦ {c}</span>)}
+              </div>:
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"10px"}}>
+                  {AL.map(a=>{const sel=editAllergens.includes(a.id);return(
+                    <button key={a.id} onClick={()=>setEditAllergens(p=>sel?p.filter(x=>x!==a.id):[...p,a.id])}
+                      style={{padding:"8px",background:sel?S.pbg:S.card,border:sel?"1.5px solid rgba(139,92,246,0.5)":`1.5px solid ${S.brd}`,borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:S.f,color:sel?"#c4b5fd":"rgba(255,255,255,0.4)",fontSize:"11px"}}>
+                      <span style={{fontSize:"16px"}}>{a.icon}</span>{a.label}{sel&&<span style={{marginLeft:"auto",color:S.p}}>✓</span>}
+                    </button>
+                  );})}
+                </div>
+                <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"6px"}}>Custom allergens</div>
+                <div style={{display:"flex",gap:"6px",marginBottom:"6px"}}>
+                  <input value={editCustomInput} onChange={e=>setEditCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"7px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none"}} />
+                  <button onClick={()=>{if(editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} style={{padding:"7px 12px",background:S.pbg,border:`1px solid rgba(139,92,246,0.4)`,borderRadius:"8px",color:"#c4b5fd",fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Add</button>
+                </div>
+                {editCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>{editCustomList.map((c,i)=><span key={i} style={{padding:"3px 8px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"20px",fontSize:"11px",color:"#fcd34d",display:"flex",alignItems:"center",gap:"4px"}}>{c}<button onClick={()=>setEditCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#f59e0b",cursor:"pointer",fontSize:"12px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
               </div>
             }
           </div>
