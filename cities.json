@@ -1,0 +1,752 @@
+[
+  {
+    "name": "Boston, MA",
+    "st": [
+      "Boylston St",
+      "Tremont St",
+      "Newbury St",
+      "Commonwealth Ave",
+      "Beacon St",
+      "Atlantic Ave",
+      "Congress St",
+      "Mass Ave",
+      "Huntington Ave",
+      "Hanover St"
+    ]
+  },
+  {
+    "name": "New York, NY",
+    "st": [
+      "Broadway",
+      "5th Ave",
+      "Madison Ave",
+      "Lexington Ave",
+      "Park Ave",
+      "Houston St",
+      "Canal St",
+      "Bleecker St",
+      "W 42nd St",
+      "Amsterdam Ave"
+    ]
+  },
+  {
+    "name": "Los Angeles, CA",
+    "st": [
+      "Sunset Blvd",
+      "Hollywood Blvd",
+      "Wilshire Blvd",
+      "Santa Monica Blvd",
+      "Melrose Ave",
+      "La Brea Ave",
+      "Vine St",
+      "Figueroa St",
+      "Olympic Blvd",
+      "Pico Blvd"
+    ]
+  },
+  {
+    "name": "Chicago, IL",
+    "st": [
+      "Michigan Ave",
+      "State St",
+      "Clark St",
+      "Wacker Dr",
+      "Madison St",
+      "Dearborn St",
+      "LaSalle St",
+      "Halsted St",
+      "Ashland Ave",
+      "Division St"
+    ]
+  },
+  {
+    "name": "San Francisco, CA",
+    "st": [
+      "Market St",
+      "Mission St",
+      "Valencia St",
+      "Haight St",
+      "Geary Blvd",
+      "Van Ness Ave",
+      "Columbus Ave",
+      "Polk St",
+      "Fillmore St",
+      "Castro St"
+    ]
+  },
+  {
+    "name": "Miami, FL",
+    "st": [
+      "Ocean Dr",
+      "Collins Ave",
+      "Biscayne Blvd",
+      "Flagler St",
+      "Coral Way",
+      "Lincoln Rd",
+      "Washington Ave",
+      "Brickell Ave",
+      "Bird Rd",
+      "Miracle Mile"
+    ]
+  },
+  {
+    "name": "Seattle, WA",
+    "st": [
+      "Pike St",
+      "Pine St",
+      "Broadway",
+      "1st Ave",
+      "3rd Ave",
+      "Aurora Ave",
+      "Rainier Ave",
+      "Westlake Ave",
+      "Denny Way",
+      "Mercer St"
+    ]
+  },
+  {
+    "name": "Austin, TX",
+    "st": [
+      "Congress Ave",
+      "6th St",
+      "Lamar Blvd",
+      "Guadalupe St",
+      "Burnet Rd",
+      "S Congress Ave",
+      "Red River St",
+      "Manor Rd",
+      "Airport Blvd",
+      "MLK Blvd"
+    ]
+  },
+  {
+    "name": "Denver, CO",
+    "st": [
+      "Colfax Ave",
+      "Broadway",
+      "16th St",
+      "Larimer St",
+      "Blake St",
+      "Wynkoop St",
+      "Speer Blvd",
+      "Federal Blvd",
+      "Colorado Blvd",
+      "Market St"
+    ]
+  },
+  {
+    "name": "Philadelphia, PA",
+    "st": [
+      "Broad St",
+      "Market St",
+      "Chestnut St",
+      "Walnut St",
+      "South St",
+      "Arch St",
+      "Spring Garden St",
+      "Girard Ave",
+      "Passyunk Ave",
+      "Frankford Ave"
+    ]
+  },
+  {
+    "name": "Atlanta, GA",
+    "st": [
+      "Peachtree St",
+      "Ponce de Leon Ave",
+      "North Ave",
+      "Edgewood Ave",
+      "Marietta St",
+      "Piedmont Ave",
+      "Decatur St",
+      "Auburn Ave",
+      "Moreland Ave",
+      "10th St"
+    ]
+  },
+  {
+    "name": "Dallas, TX",
+    "st": [
+      "Main St",
+      "Elm St",
+      "Commerce St",
+      "McKinney Ave",
+      "Greenville Ave",
+      "Cedar Springs Rd",
+      "Ross Ave",
+      "Oak Lawn Ave",
+      "Knox St",
+      "Henderson Ave"
+    ]
+  },
+  {
+    "name": "Portland, OR",
+    "st": [
+      "Burnside St",
+      "Hawthorne Blvd",
+      "Division St",
+      "Alberta St",
+      "Mississippi Ave",
+      "Belmont St",
+      "NW 23rd Ave",
+      "MLK Blvd",
+      "Powell Blvd",
+      "Sandy Blvd"
+    ]
+  },
+  {
+    "name": "Nashville, TN",
+    "st": [
+      "Broadway",
+      "2nd Ave",
+      "Church St",
+      "West End Ave",
+      "Music Row",
+      "Demonbreun St",
+      "8th Ave",
+      "Division St",
+      "Gallatin Pike",
+      "Charlotte Ave"
+    ]
+  },
+  {
+    "name": "Washington, DC",
+    "st": [
+      "Pennsylvania Ave",
+      "Connecticut Ave",
+      "Wisconsin Ave",
+      "M St",
+      "K St",
+      "H St NE",
+      "U St",
+      "14th St",
+      "Georgia Ave",
+      "Columbia Rd"
+    ]
+  },
+  {
+    "name": "San Diego, CA",
+    "st": [
+      "El Cajon Blvd",
+      "University Ave",
+      "Garnet Ave",
+      "India St",
+      "5th Ave",
+      "Broadway",
+      "Market St",
+      "Harbor Dr",
+      "Morena Blvd",
+      "Midway Dr"
+    ]
+  },
+  {
+    "name": "Houston, TX",
+    "st": [
+      "Westheimer Rd",
+      "Richmond Ave",
+      "Washington Ave",
+      "Main St",
+      "Kirby Dr",
+      "Montrose Blvd",
+      "Shepherd Dr",
+      "Heights Blvd",
+      "Fannin St",
+      "Travis St"
+    ]
+  },
+  {
+    "name": "Phoenix, AZ",
+    "st": [
+      "Central Ave",
+      "Camelback Rd",
+      "Indian School Rd",
+      "McDowell Rd",
+      "Thomas Rd",
+      "Van Buren St",
+      "7th Ave",
+      "7th St",
+      "16th St",
+      "Scottsdale Rd"
+    ]
+  },
+  {
+    "name": "Minneapolis, MN",
+    "st": [
+      "Hennepin Ave",
+      "Nicollet Ave",
+      "Lake St",
+      "Lyndale Ave",
+      "Washington Ave",
+      "University Ave",
+      "Broadway",
+      "Central Ave",
+      "Franklin Ave",
+      "Eat St"
+    ]
+  },
+  {
+    "name": "Detroit, MI",
+    "st": [
+      "Woodward Ave",
+      "Michigan Ave",
+      "Gratiot Ave",
+      "Grand River Ave",
+      "Livernois Ave",
+      "Cass Ave",
+      "Jefferson Ave",
+      "Fort St",
+      "Warren Ave",
+      "McNichols Rd"
+    ]
+  },
+  {
+    "name": "Tampa, FL",
+    "st": [
+      "Dale Mabry Hwy",
+      "Kennedy Blvd",
+      "Bayshore Blvd",
+      "Howard Ave",
+      "Armenia Ave",
+      "Hillsborough Ave",
+      "Columbus Dr",
+      "Nebraska Ave",
+      "Florida Ave",
+      "Gandy Blvd"
+    ]
+  },
+  {
+    "name": "Orlando, FL",
+    "st": [
+      "Orange Ave",
+      "International Dr",
+      "Colonial Dr",
+      "Mills Ave",
+      "Magnolia Ave",
+      "Church St",
+      "Pine St",
+      "Central Blvd",
+      "Semoran Blvd",
+      "Kirkman Rd"
+    ]
+  },
+  {
+    "name": "Charlotte, NC",
+    "st": [
+      "Tryon St",
+      "Trade St",
+      "South Blvd",
+      "Central Ave",
+      "Independence Blvd",
+      "Park Rd",
+      "Freedom Dr",
+      "Providence Rd",
+      "Sharon Rd",
+      "Eastway Dr"
+    ]
+  },
+  {
+    "name": "Pittsburgh, PA",
+    "st": [
+      "Forbes Ave",
+      "Fifth Ave",
+      "Liberty Ave",
+      "Penn Ave",
+      "Carson St",
+      "Butler St",
+      "Murray Ave",
+      "Walnut St",
+      "Craig St",
+      "Baum Blvd"
+    ]
+  },
+  {
+    "name": "Las Vegas, NV",
+    "st": [
+      "Las Vegas Blvd",
+      "Fremont St",
+      "Sahara Ave",
+      "Flamingo Rd",
+      "Tropicana Ave",
+      "Spring Mountain Rd",
+      "Charleston Blvd",
+      "Decatur Blvd",
+      "Eastern Ave",
+      "Desert Inn Rd"
+    ]
+  },
+  {
+    "name": "Cleveland, OH",
+    "st": [
+      "Euclid Ave",
+      "Superior Ave",
+      "Detroit Ave",
+      "Lorain Ave",
+      "Carnegie Ave",
+      "St Clair Ave",
+      "Prospect Ave",
+      "Broadway Ave",
+      "Pearl Rd",
+      "W 25th St"
+    ]
+  },
+  {
+    "name": "Columbus, OH",
+    "st": [
+      "High St",
+      "Broad St",
+      "Main St",
+      "Neil Ave",
+      "4th St",
+      "Lane Ave",
+      "Olentangy River Rd",
+      "Morse Rd",
+      "Sawmill Rd",
+      "3rd St"
+    ]
+  },
+  {
+    "name": "Indianapolis, IN",
+    "st": [
+      "Meridian St",
+      "Washington St",
+      "Illinois St",
+      "Capitol Ave",
+      "Mass Ave",
+      "College Ave",
+      "Michigan St",
+      "New York St",
+      "Market St",
+      "Broad Ripple Ave"
+    ]
+  },
+  {
+    "name": "Kansas City, MO",
+    "st": [
+      "Main St",
+      "Broadway",
+      "Grand Blvd",
+      "Troost Ave",
+      "Westport Rd",
+      "39th St",
+      "Southwest Blvd",
+      "Independence Ave",
+      "Armour Blvd",
+      "Ward Pkwy"
+    ]
+  },
+  {
+    "name": "Salt Lake City, UT",
+    "st": [
+      "State St",
+      "Main St",
+      "700 East",
+      "900 South",
+      "400 South",
+      "Highland Dr",
+      "Foothill Blvd",
+      "Redwood Rd",
+      "West Temple",
+      "200 South"
+    ]
+  },
+  {
+    "name": "New Orleans, LA",
+    "st": [
+      "Magazine St",
+      "St Charles Ave",
+      "Canal St",
+      "Frenchmen St",
+      "Tchoupitoulas St",
+      "Bourbon St",
+      "Decatur St",
+      "Carrollton Ave",
+      "Esplanade Ave",
+      "Rampart St"
+    ]
+  },
+  {
+    "name": "Baltimore, MD",
+    "st": [
+      "Charles St",
+      "Pratt St",
+      "Light St",
+      "Lombard St",
+      "Baltimore St",
+      "Eastern Ave",
+      "Broadway",
+      "Eutaw St",
+      "Howard St",
+      "Fells Point"
+    ]
+  },
+  {
+    "name": "Providence, RI",
+    "st": [
+      "Thayer St",
+      "Wickenden St",
+      "Westminster St",
+      "Atwells Ave",
+      "Broadway",
+      "Elmwood Ave",
+      "Hope St",
+      "North Main St",
+      "Weybosset St",
+      "Dorrance St"
+    ]
+  },
+  {
+    "name": "Sacramento, CA",
+    "st": [
+      "K St",
+      "J St",
+      "L St",
+      "Capitol Mall",
+      "Broadway",
+      "Alhambra Blvd",
+      "Folsom Blvd",
+      "Freeport Blvd",
+      "Stockton Blvd",
+      "Watt Ave"
+    ]
+  },
+  {
+    "name": "Randolph, MA",
+    "st": [
+      "North Main St",
+      "South Main St",
+      "High St",
+      "Warren St",
+      "Center St",
+      "Union St",
+      "West St",
+      "Canton St",
+      "Memorial Dr",
+      "Reed St"
+    ]
+  },
+  {
+    "name": "Burlington, MA",
+    "st": [
+      "Cambridge St",
+      "Middlesex Tpke",
+      "Burlington Mall Rd",
+      "Winn St",
+      "Bedford St",
+      "Center St",
+      "Wilmington Rd",
+      "Mall Rd",
+      "Network Dr",
+      "3rd Ave"
+    ]
+  },
+  {
+    "name": "Cambridge, MA",
+    "st": [
+      "Mass Ave",
+      "Broadway",
+      "Hampshire St",
+      "Main St",
+      "Cambridge St",
+      "Brattle St",
+      "Mt Auburn St",
+      "Western Ave",
+      "Memorial Dr",
+      "First St"
+    ]
+  },
+  {
+    "name": "Quincy, MA",
+    "st": [
+      "Hancock St",
+      "Newport Ave",
+      "Southern Artery",
+      "Beale St",
+      "Washington St",
+      "Granite St",
+      "Copeland St",
+      "School St",
+      "Elm St",
+      "Water St"
+    ]
+  },
+  {
+    "name": "Worcester, MA",
+    "st": [
+      "Main St",
+      "Park Ave",
+      "Pleasant St",
+      "Highland St",
+      "Shrewsbury St",
+      "Chandler St",
+      "Grove St",
+      "Grafton St",
+      "Millbury St",
+      "Lincoln St"
+    ]
+  },
+  {
+    "name": "Somerville, MA",
+    "st": [
+      "Highland Ave",
+      "Broadway",
+      "Elm St",
+      "Davis Square",
+      "Holland St",
+      "Medford St",
+      "Washington St",
+      "Summer St",
+      "School St",
+      "Union Square"
+    ]
+  },
+  {
+    "name": "Brookline, MA",
+    "st": [
+      "Harvard St",
+      "Beacon St",
+      "Washington St",
+      "Boylston St",
+      "Commonwealth Ave",
+      "Centre St",
+      "Cypress St",
+      "Brook St",
+      "Kent St",
+      "Coolidge Corner"
+    ]
+  },
+  {
+    "name": "Braintree, MA",
+    "st": [
+      "Washington St",
+      "Elm St",
+      "Pearl St",
+      "Union St",
+      "Main St",
+      "Ivory St",
+      "Commercial St",
+      "Plain St",
+      "Middle St",
+      "Pond St"
+    ]
+  },
+  {
+    "name": "Springfield, MA",
+    "st": [
+      "Main St",
+      "State St",
+      "Worthington St",
+      "Chestnut St",
+      "Dwight St",
+      "Maple St",
+      "Sumner Ave",
+      "Boston Rd",
+      "Allen St",
+      "Belmont Ave"
+    ]
+  },
+  {
+    "name": "Raleigh, NC",
+    "st": [
+      "Glenwood Ave",
+      "Hillsborough St",
+      "Fayetteville St",
+      "New Bern Ave",
+      "Capital Blvd",
+      "Western Blvd",
+      "Six Forks Rd",
+      "Falls of Neuse Rd",
+      "Creedmoor Rd",
+      "Wake Forest Rd"
+    ]
+  },
+  {
+    "name": "Richmond, VA",
+    "st": [
+      "Broad St",
+      "Main St",
+      "Cary St",
+      "Grace St",
+      "Franklin St",
+      "Monument Ave",
+      "Boulevard",
+      "Staples Mill Rd",
+      "Midlothian Tpke",
+      "Hull St"
+    ]
+  },
+  {
+    "name": "Milwaukee, WI",
+    "st": [
+      "Wisconsin Ave",
+      "Water St",
+      "Brady St",
+      "North Ave",
+      "Farwell Ave",
+      "Oakland Ave",
+      "Downer Ave",
+      "Kinnickinnic Ave",
+      "Mitchell St",
+      "National Ave"
+    ]
+  },
+  {
+    "name": "Louisville, KY",
+    "st": [
+      "Bardstown Rd",
+      "Frankfort Ave",
+      "Main St",
+      "Market St",
+      "Broadway",
+      "4th St",
+      "Baxter Ave",
+      "Shelbyville Rd",
+      "Brownsboro Rd",
+      "Dixie Hwy"
+    ]
+  },
+  {
+    "name": "St. Louis, MO",
+    "st": [
+      "Market St",
+      "Delmar Blvd",
+      "Grand Blvd",
+      "Kingshighway",
+      "Lindell Blvd",
+      "Jefferson Ave",
+      "Cherokee St",
+      "Manchester Ave",
+      "Hampton Ave",
+      "Gravois Ave"
+    ]
+  },
+  {
+    "name": "Hartford, CT",
+    "st": [
+      "Main St",
+      "Asylum St",
+      "Farmington Ave",
+      "Park St",
+      "Capitol Ave",
+      "Pratt St",
+      "Trumbull St",
+      "Pearl St",
+      "Prospect St",
+      "Albany Ave"
+    ]
+  },
+  {
+    "name": "San Antonio, TX",
+    "st": [
+      "Broadway St",
+      "Alamo St",
+      "Commerce St",
+      "Market St",
+      "St Mary's St",
+      "McCullough Ave",
+      "Fredericksburg Rd",
+      "Blanco Rd",
+      "Bandera Rd",
+      "Culebra Rd"
+    ]
+  }
+]

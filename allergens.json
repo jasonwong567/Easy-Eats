@@ -1,0 +1,502 @@
+{
+  "AL": [
+    {
+      "id": "milk",
+      "label": "Dairy / Milk",
+      "icon": "🥛",
+      "v": [
+        "milk",
+        "casein",
+        "caseinate",
+        "whey",
+        "lactose",
+        "ghee",
+        "curds",
+        "lactalbumin",
+        "lactoferrin",
+        "butter",
+        "cream",
+        "cheese",
+        "yogurt",
+        "custard",
+        "pudding",
+        "half-and-half",
+        "galactose",
+        "recaldent",
+        "rennet",
+        "milk fat",
+        "milkfat",
+        "milk solid",
+        "dry milk",
+        "cream cheese",
+        "sour cream",
+        "buttermilk",
+        "butterfat",
+        "nonfat milk",
+        "skim milk",
+        "whole milk"
+      ]
+    },
+    {
+      "id": "peanuts",
+      "label": "Peanuts",
+      "icon": "🥜",
+      "v": [
+        "peanut",
+        "peanuts",
+        "arachis oil",
+        "groundnut",
+        "mandelonas",
+        "arachis hypogaea",
+        "peanut butter",
+        "peanut flour",
+        "peanut oil",
+        "peanut protein",
+        "monkey nuts",
+        "earth nuts",
+        "beer nuts",
+        "goobers"
+      ]
+    },
+    {
+      "id": "treenuts",
+      "label": "Tree Nuts",
+      "icon": "🌰",
+      "v": [
+        "almond",
+        "cashew",
+        "walnut",
+        "pecan",
+        "pistachio",
+        "macadamia",
+        "hazelnut",
+        "brazil nut",
+        "chestnut",
+        "praline",
+        "marzipan",
+        "nougat",
+        "filbert",
+        "gianduja",
+        "pine nut",
+        "pignoli",
+        "shea nut",
+        "beechnut",
+        "butternut",
+        "almond milk",
+        "cashew milk",
+        "almond flour",
+        "nut butter",
+        "nutella",
+        "amaretto"
+      ]
+    },
+    {
+      "id": "eggs",
+      "label": "Eggs",
+      "icon": "🥚",
+      "v": [
+        "egg",
+        "eggs",
+        "albumin",
+        "globulin",
+        "lysozyme",
+        "mayonnaise",
+        "meringue",
+        "ovalbumin",
+        "ovomucin",
+        "ovomucoid",
+        "ovovitellin",
+        "vitellin",
+        "egg white",
+        "egg yolk",
+        "eggnog",
+        "livetin"
+      ]
+    },
+    {
+      "id": "wheat",
+      "label": "Wheat / Gluten",
+      "icon": "🌾",
+      "v": [
+        "wheat",
+        "gluten",
+        "semolina",
+        "spelt",
+        "durum",
+        "einkorn",
+        "emmer",
+        "kamut",
+        "farina",
+        "couscous",
+        "bulgur",
+        "seitan",
+        "flour",
+        "bread crumbs",
+        "breadcrumbs",
+        "bran",
+        "starch",
+        "modified food starch",
+        "hydrolyzed wheat",
+        "vital wheat gluten",
+        "enriched flour",
+        "all-purpose flour",
+        "graham",
+        "triticale",
+        "malt",
+        "malt extract",
+        "barley",
+        "rye",
+        "brewer's yeast"
+      ]
+    },
+    {
+      "id": "soy",
+      "label": "Soy",
+      "icon": "🫘",
+      "v": [
+        "soy",
+        "soya",
+        "soybean",
+        "edamame",
+        "miso",
+        "tempeh",
+        "tofu",
+        "lecithin",
+        "soy lecithin",
+        "textured vegetable protein",
+        "tvp",
+        "soy sauce",
+        "shoyu",
+        "tamari",
+        "soy protein",
+        "soy flour",
+        "soy milk",
+        "soybean oil",
+        "soy isolate",
+        "hydrolyzed soy",
+        "natto"
+      ]
+    },
+    {
+      "id": "fish",
+      "label": "Fish",
+      "icon": "🐟",
+      "v": [
+        "fish",
+        "anchovies",
+        "anchovy",
+        "cod",
+        "bass",
+        "flounder",
+        "haddock",
+        "salmon",
+        "tilapia",
+        "tuna",
+        "surimi",
+        "fish sauce",
+        "worcestershire",
+        "fish oil",
+        "fish gelatin",
+        "fish stock",
+        "caesar dressing"
+      ]
+    },
+    {
+      "id": "shellfish",
+      "label": "Shellfish",
+      "icon": "🦐",
+      "v": [
+        "shrimp",
+        "crab",
+        "lobster",
+        "crawfish",
+        "crayfish",
+        "prawn",
+        "scallop",
+        "clam",
+        "mussel",
+        "oyster",
+        "squid",
+        "calamari",
+        "abalone",
+        "snail",
+        "escargot",
+        "octopus",
+        "shellfish",
+        "crustacean",
+        "mollusk",
+        "oyster sauce",
+        "shrimp paste"
+      ]
+    },
+    {
+      "id": "sesame",
+      "label": "Sesame",
+      "icon": "🫓",
+      "v": [
+        "sesame",
+        "tahini",
+        "halvah",
+        "halva",
+        "hummus",
+        "sesame oil",
+        "sesame seeds",
+        "sesame flour",
+        "sesame paste",
+        "gingelly oil",
+        "benne seeds"
+      ]
+    },
+    {
+      "id": "mustard",
+      "label": "Mustard",
+      "icon": "🟡",
+      "v": [
+        "mustard",
+        "mustard seed",
+        "mustard flour",
+        "mustard oil",
+        "dijon",
+        "mustard powder"
+      ]
+    },
+    {
+      "id": "celery",
+      "label": "Celery",
+      "icon": "🥬",
+      "v": [
+        "celery",
+        "celeriac",
+        "celery salt",
+        "celery seed",
+        "celery powder",
+        "celery root"
+      ]
+    },
+    {
+      "id": "sulfites",
+      "label": "Sulfites",
+      "icon": "🍷",
+      "v": [
+        "sulfites",
+        "sulfite",
+        "sulfur dioxide",
+        "sodium sulfite",
+        "sodium bisulfite",
+        "sodium metabisulfite",
+        "potassium bisulfite",
+        "potassium metabisulfite",
+        "sulphites",
+        "sulphur dioxide"
+      ]
+    }
+  ],
+  "FP": [
+    {
+      "p": "coconut cream",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "coconut milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "coconut butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "cocoa butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "shea butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "cream of tartar",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "almond milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "cashew milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "oat milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "cream soda",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "eggplant",
+      "s": [
+        "eggs"
+      ]
+    },
+    {
+      "p": "egg plant",
+      "s": [
+        "eggs"
+      ]
+    }
+  ],
+  "AMB": [
+    {
+      "p": "natural flavor",
+      "w": "Source unspecified — may contain allergen derivatives",
+      "r": [
+        "milk",
+        "eggs",
+        "wheat",
+        "soy",
+        "fish",
+        "shellfish",
+        "treenuts",
+        "peanuts"
+      ]
+    },
+    {
+      "p": "artificial flavor",
+      "w": "Source unspecified — may contain allergen derivatives",
+      "r": [
+        "milk",
+        "eggs",
+        "wheat",
+        "soy"
+      ]
+    },
+    {
+      "p": "spices",
+      "w": "Unspecified blend — may contain mustard, celery, or sesame",
+      "r": [
+        "mustard",
+        "celery",
+        "sesame"
+      ]
+    },
+    {
+      "p": "seasoning",
+      "w": "May contain soy, wheat, or dairy",
+      "r": [
+        "soy",
+        "wheat",
+        "milk"
+      ]
+    },
+    {
+      "p": "modified food starch",
+      "w": "Could be wheat-derived",
+      "r": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "modified starch",
+      "w": "Could be wheat-derived",
+      "r": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "hydrolyzed protein",
+      "w": "May be from soy, wheat, or milk",
+      "r": [
+        "soy",
+        "wheat",
+        "milk"
+      ]
+    },
+    {
+      "p": "vegetable oil",
+      "w": "May include soybean or peanut oil",
+      "r": [
+        "soy",
+        "peanuts"
+      ]
+    },
+    {
+      "p": "emulsifier",
+      "w": "May be from soy or eggs",
+      "r": [
+        "soy",
+        "eggs"
+      ]
+    },
+    {
+      "p": "caramel color",
+      "w": "May be processed with wheat or dairy",
+      "r": [
+        "wheat",
+        "milk"
+      ]
+    },
+    {
+      "p": "maltodextrin",
+      "w": "Usually corn but can be wheat",
+      "r": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "tocopherol",
+      "w": "Often from soybean oil",
+      "r": [
+        "soy"
+      ]
+    },
+    {
+      "p": "monoglycerides",
+      "w": "May be from soybean oil",
+      "r": [
+        "soy"
+      ]
+    },
+    {
+      "p": "diglycerides",
+      "w": "May be from soybean oil",
+      "r": [
+        "soy"
+      ]
+    },
+    {
+      "p": "may contain",
+      "w": "Cross-contamination warning on label",
+      "r": []
+    },
+    {
+      "p": "shared equipment",
+      "w": "Cross-contamination risk",
+      "r": []
+    },
+    {
+      "p": "traces of",
+      "w": "Trace amounts may be present",
+      "r": []
+    }
+  ]
+}
