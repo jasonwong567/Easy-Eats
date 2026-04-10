@@ -5,34 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Easy Eats — Allergen Safety Assistant</title>
   <meta name="description" content="Your personal food allergen safety assistant. Scan ingredients, find safe restaurants, and manage your allergen profile.">
-  <meta name="theme-color" content="#0b0e18">
+  <meta name="theme-color" content="#FAFAFA">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0d16; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    #root { min-height: 100vh; }
+    body { background: #EEF2FF; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+    #root { min-height: 100vh; background: linear-gradient(160deg, #EEF2FF 0%, #F5F7FF 40%, #FAFBFF 100%); }
 
     /* Loading screen */
-    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a0d16; color: #fff; font-family: sans-serif; flex-direction: column; gap: 12px; }
-    .app-loader .logo { width: 72px; height: 72px; border-radius: 22px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 36px; animation: pulse 1.8s ease-in-out infinite; box-shadow: 0 8px 32px rgba(34,197,94,0.3); }
+    .app-loader { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #EEF2FF, #FAFBFF); color: #111827; font-family: sans-serif; flex-direction: column; gap: 12px; }
+    .app-loader .logo { width: 72px; height: 72px; border-radius: 22px; background: linear-gradient(135deg, #0052FF, #4D7CFF); display: flex; align-items: center; justify-content: center; font-size: 36px; animation: pulse 1.8s ease-in-out infinite; box-shadow: 0 8px 32px rgba(0,82,255,0.25); }
     @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.9; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
 
     /* Global interactive states */
     button { transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease; }
     button:active:not(:disabled) { transform: scale(0.97); }
     input, textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-    input:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important; }
+    input:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(0,82,255,0.12) !important; outline: none; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 3px; height: 3px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
 
     /* Placeholder */
-    ::placeholder { color: rgba(255,255,255,0.25); }
+    ::placeholder { color: rgba(0,0,0,0.3); }
 
     /* Details/summary */
     details > summary { list-style: none; }
     details > summary::-webkit-details-marker { display: none; }
+
+    /* Gradient text */
+    .grad-text { background: linear-gradient(135deg, #0052FF, #4D7CFF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
     /* Desktop scaling */
     @media (min-width: 1440px) { #root { zoom: 1.05; } }
@@ -43,7 +50,7 @@
   <div id="root">
     <div class="app-loader">
       <div class="logo">🍽</div>
-      <div style="color: rgba(255,255,255,0.5); font-size: 14px;">Loading Easy Eats...</div>
+      <div style="color: #6B7280; font-size: 14px; font-family: 'Inter', sans-serif; font-weight: 500;">Loading Easy Eats...</div>
     </div>
   </div>
 
@@ -128,15 +135,55 @@ function runScan(text, ua, customAllergens) {
 }
 
 // ─── FONTS ───
-if (!document.querySelector('link[href*="DM+Sans"]')) {
+if (!document.querySelector('link[href*="Inter"]')) {
   const fl = document.createElement("link");
-  fl.href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap";
+  fl.href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calistoga&family=JetBrains+Mono:wght@400;500;600&display=swap";
   fl.rel="stylesheet"; document.head.appendChild(fl);
 }
 
-const S = { f:"'DM Sans',sans-serif", sf:"'Fraunces',serif", bg:"#080b14", card:"rgba(255,255,255,0.06)", card2:"rgba(255,255,255,0.1)", brd:"rgba(255,255,255,0.09)", mut:"rgba(255,255,255,0.35)", g:"#22c55e", y:"#f59e0b", r:"#ef4444", p:"#a78bfa", pbg:"rgba(139,92,246,0.15)", shadow:"0 8px 32px rgba(0,0,0,0.5)", shadowSm:"0 2px 16px rgba(0,0,0,0.35)", cardBorder:"rgba(255,255,255,0.07)" };
+// ─── DESIGN TOKENS ───
+const S = {
+  // Typography
+  f: "'Inter', -apple-system, sans-serif",
+  sf: "'Calistoga', Georgia, serif",
+  mono: "'JetBrains Mono', monospace",
+  // Backgrounds
+  bg: "#F5F7FF",
+  bgDark: "#111827",
+  card: "#FFFFFF",
+  card2: "#EEF2FF",
+  cardDark: "#1F2937",
+  // Accent - Electric Blue
+  p: "#0052FF",
+  p2: "#4D7CFF",
+  pGrad: "linear-gradient(135deg, #0052FF, #4D7CFF)",
+  pbg: "rgba(0,82,255,0.06)",
+  pBrd: "rgba(0,82,255,0.18)",
+  // Text
+  text: "#0A0A0A",
+  text2: "#374151",
+  mut: "#6B7280",
+  mut2: "#9CA3AF",
+  // Status
+  g: "#16a34a",
+  gbg: "rgba(22,163,74,0.08)",
+  gbrd: "rgba(22,163,74,0.2)",
+  y: "#d97706",
+  ybg: "rgba(217,119,6,0.08)",
+  ybrd: "rgba(217,119,6,0.2)",
+  r: "#dc2626",
+  rbg: "rgba(220,38,38,0.08)",
+  rbrd: "rgba(220,38,38,0.2)",
+  // Border & Shadow
+  brd: "#E5E7EB",
+  shadow: "0 4px 24px rgba(0,0,0,0.08)",
+  shadowSm: "0 2px 8px rgba(0,0,0,0.06)",
+  shadowMd: "0 8px 32px rgba(0,0,0,0.12)",
+  shadowBlue: "0 4px 20px rgba(0,82,255,0.2)",
+};
 const sc = s => s==="safe"?S.g:s==="caution"?S.y:S.r;
-const sb = s => s==="safe"?"rgba(34,197,94,0.08)":s==="caution"?"rgba(245,158,11,0.08)":"rgba(239,68,68,0.08)";
+const sb = s => s==="safe"?S.gbg:s==="caution"?S.ybg:S.rbg;
+const sbrd = s => s==="safe"?S.gbrd:s==="caution"?S.ybrd:S.rbrd;
 
 // ─── MULTI-USER STORAGE ───
 const USERS_KEY = "easyeats-users"; // stores {username: {password, name, allergens, history, createdAt}}
@@ -771,7 +818,7 @@ function App() {
         if (r.lat && r.lon) {
           const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
           L.marker([r.lat, r.lon]).addTo(map)
-            .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b style="font-size:13px">${r.name}</b><br/><span style="font-size:11px;color:#666">${r.address}</span><br/><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><button onclick="window._easyEatsNavChain('${r.locId}')" style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;text-align:center">View Menu →</button><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#7c3aed;text-decoration:none;font-weight:600;text-align:center">Get Directions ↗</a></div></div>`);
+            .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b style="font-size:13px;color:#0A0A0A">${r.name}</b><br/><span style="font-size:11px;color:#6B7280">${r.address}</span><br/><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><button onclick="window._easyEatsNavChain('${r.locId}')" style="background:#0052FF;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;text-align:center">View Menu →</button><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#0052FF;text-decoration:none;font-weight:600;text-align:center">Get Directions ↗</a></div></div>`);
         }
       });
       mapInstanceRef.current = map;
@@ -892,77 +939,77 @@ function App() {
   };
 
 
-  if (!loaded) return <div style={{minHeight:"100vh",background:S.bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:S.f}}>Loading...</div>;
+  if (!loaded) return <div style={{minHeight:"100vh",background:S.bg,display:"flex",alignItems:"center",justifyContent:"center",color:S.text,fontFamily:S.f}}>Loading...</div>;
 
   // ─── AUTH SCREENS ───
   if (!currentUser) return (
-    <div style={{minHeight:"100vh",background:S.bg,fontFamily:S.f,color:"#e8e6f0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <div style={{maxWidth:"480px",width:"100%"}}>
-        <div style={{textAlign:"center",marginBottom:"32px"}}>
-          <div style={{width:"64px",height:"64px",borderRadius:"18px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"32px",marginBottom:"16px"}}>🍽</div>
-          <h1 style={{fontFamily:S.sf,fontSize:"36px",fontWeight:800,color:"#fff",margin:"0 0 8px"}}>Easy Eats</h1>
-          <p style={{color:S.mut,fontSize:"14px"}}>Your personal allergen safety assistant</p>
+    <div style={{minHeight:"100vh",background:S.bg,fontFamily:S.f,color:S.text,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div style={{maxWidth:"480px",width:"100%",animation:"fadeUp 0.4s ease both"}}>
+        <div style={{textAlign:"center",marginBottom:"36px"}}>
+          <div style={{width:"68px",height:"68px",borderRadius:"20px",background:S.pGrad,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"34px",marginBottom:"20px",boxShadow:S.shadowBlue}}>🍽</div>
+          <h1 style={{fontFamily:S.sf,fontSize:"38px",fontWeight:400,color:S.text,margin:"0 0 8px",letterSpacing:"-0.5px"}}>Easy Eats</h1>
+          <p style={{color:S.mut,fontSize:"15px",fontWeight:400}}>Your personal allergen safety assistant</p>
         </div>
 
         {authMode==="setupAllergens"?(
-          <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"20px",padding:"28px"}}>
-            <button onClick={()=>{setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back</button>
-            <h2 style={{fontFamily:S.sf,fontSize:"20px",fontWeight:800,color:"#fff",margin:"0 0 6px"}}>Select your allergens</h2>
-            <p style={{color:S.mut,fontSize:"12px",marginBottom:"16px"}}>Choose all that apply. You can edit these later.</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
+          <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
+            <button onClick={()=>{setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
+            <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:400,color:S.text,margin:"0 0 6px"}}>Select your allergens</h2>
+            <p style={{color:S.mut,fontSize:"13px",marginBottom:"20px"}}>Choose all that apply. You can edit these later.</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px"}}>
               {AL.map(a=>{const sel=authAllergens.includes(a.id);return(
                 <button key={a.id} onClick={()=>setAuthAllergens(p=>sel?p.filter(x=>x!==a.id):[...p,a.id])}
-                  style={{padding:"10px 8px",background:sel?S.pbg:S.card,border:sel?"1.5px solid rgba(139,92,246,0.5)":`1.5px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:S.f,color:sel?"#c4b5fd":"rgba(255,255,255,0.5)",fontSize:"12px",fontWeight:sel?600:400}}>
-                  <span style={{fontSize:"18px"}}>{a.icon}</span><span style={{flex:1,textAlign:"left"}}>{a.label}</span>{sel&&<span style={{color:S.p,fontSize:"14px"}}>✓</span>}
+                  style={{padding:"11px 10px",background:sel?S.pbg:S.bg,border:sel?`1.5px solid ${S.pBrd}`:`1.5px solid ${S.brd}`,borderRadius:"12px",cursor:"pointer",display:"flex",alignItems:"center",gap:"7px",fontFamily:S.f,color:sel?S.p:S.mut2,fontSize:"12px",fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                  <span style={{fontSize:"18px"}}>{a.icon}</span><span style={{flex:1,textAlign:"left",color:sel?S.text:S.mut}}>{a.label}</span>{sel&&<span style={{color:S.p,fontSize:"13px",fontWeight:700}}>✓</span>}
                 </button>
               );})}
             </div>
-            <div style={{marginTop:"12px"}}>
-              <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"6px"}}>Add a custom allergen</div>
-              <div style={{display:"flex",gap:"6px"}}>
-                <input value={authCustom} onChange={e=>setAuthCustom(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none"}} />
-                <button onClick={()=>{if(authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} style={{padding:"8px 12px",background:S.pbg,border:`1px solid rgba(139,92,246,0.4)`,borderRadius:"8px",color:"#c4b5fd",fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Add</button>
+            <div style={{marginTop:"16px"}}>
+              <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,fontFamily:S.mono,marginBottom:"8px"}}>Custom allergen</div>
+              <div style={{display:"flex",gap:"8px"}}>
+                <input value={authCustom} onChange={e=>setAuthCustom(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"10px 12px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f}} />
+                <button onClick={()=>{if(authCustom.trim()){setAuthCustomList(p=>[...p,authCustom.trim()]);setAuthCustom("");}}} style={{padding:"10px 14px",background:S.pbg,border:`1.5px solid ${S.pBrd}`,borderRadius:"10px",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700}}>Add</button>
               </div>
-              {authCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginTop:"8px"}}>{authCustomList.map((c,i)=><span key={i} style={{padding:"3px 8px",background:"rgba(139,92,246,0.15)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:"20px",fontSize:"11px",color:"#c4b5fd",display:"flex",alignItems:"center",gap:"4px"}}>{c}<button onClick={()=>setAuthCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#a78bfa",cursor:"pointer",fontSize:"12px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
+              {authCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"10px"}}>{authCustomList.map((c,i)=><span key={i} style={{padding:"4px 10px",background:S.pbg,border:`1px solid ${S.pBrd}`,borderRadius:"20px",fontSize:"12px",color:S.p,display:"flex",alignItems:"center",gap:"5px",fontWeight:500}}>{c}<button onClick={()=>setAuthCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:S.p,cursor:"pointer",fontSize:"13px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
             </div>
-            {authError&&<div style={{marginTop:"12px",padding:"10px 14px",borderRadius:"8px",background:"rgba(239,68,68,0.1)",color:"#fca5a5",fontSize:"12px"}}>{authError}</div>}
+            {authError&&<div style={{marginTop:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,color:S.r,fontSize:"13px",border:`1px solid ${S.rbrd}`}}>{authError}</div>}
             <button onClick={finishSignup} disabled={authAllergens.length===0&&authCustomList.length===0}
-              style={{width:"100%",marginTop:"16px",padding:"13px",background:(authAllergens.length||authCustomList.length)?"linear-gradient(135deg,#22c55e,#16a34a)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:(authAllergens.length||authCustomList.length)?"#fff":"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:(authAllergens.length||authCustomList.length)?"pointer":"default",fontFamily:S.f}}>
+              style={{width:"100%",marginTop:"20px",padding:"14px",background:(authAllergens.length||authCustomList.length)?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:(authAllergens.length||authCustomList.length)?"#fff":S.mut2,fontSize:"15px",fontWeight:700,cursor:(authAllergens.length||authCustomList.length)?"pointer":"default",fontFamily:S.f,boxShadow:(authAllergens.length||authCustomList.length)?S.shadowBlue:"none",letterSpacing:"-0.2px"}}>
               Create Account ({authAllergens.length + authCustomList.length} allergens)
             </button>
           </div>
         ):(
-          <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"20px",padding:"28px"}}>
-            <h2 style={{fontFamily:S.sf,fontSize:"20px",fontWeight:800,color:"#fff",margin:"0 0 16px"}}>{authMode==="login"?"Log In":"Sign Up"}</h2>
+          <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
+            <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 20px",letterSpacing:"-0.3px"}}>{authMode==="login"?"Welcome back":"Create account"}</h2>
 
             {authMode==="signup"&&<>
-              <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"6px"}}>Display Name</label>
+              <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Display Name</label>
               <input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="Your name"
-                style={{width:"100%",padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"14px"}} />
+                style={{width:"100%",padding:"13px 14px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"16px"}} />
             </>}
 
-            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"6px"}}>Username</label>
+            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Username</label>
             <input value={authUser} onChange={e=>{setAuthUser(e.target.value);setAuthError("");}} placeholder={authMode==="login"?"Enter username":"Choose a username"}
-              style={{width:"100%",padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"14px"}} />
+              style={{width:"100%",padding:"13px 14px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"16px"}} />
 
-            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"6px"}}>Password</label>
-            <div style={{position:"relative",marginBottom:"14px"}}>
+            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Password</label>
+            <div style={{position:"relative",marginBottom:"16px"}}>
               <input type={showPass?"text":"password"} value={authPass} onChange={e=>{setAuthPass(e.target.value);setAuthError("");}} placeholder={authMode==="login"?"Enter password":"Choose a password"} onKeyDown={e=>{if(e.key==="Enter"){authMode==="login"?doLogin():doSignup();}}}
-                style={{width:"100%",padding:"12px 14px",paddingRight:"50px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
-              <button onClick={()=>setShowPass(!showPass)} style={{position:"absolute",right:"12px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f}}>{showPass?"Hide":"Show"}</button>
+                style={{width:"100%",padding:"13px 14px",paddingRight:"52px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box"}} />
+              <button onClick={()=>setShowPass(!showPass)} style={{position:"absolute",right:"14px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>{showPass?"Hide":"Show"}</button>
             </div>
 
-            {authError&&<div style={{marginBottom:"12px",padding:"10px 14px",borderRadius:"8px",background:"rgba(239,68,68,0.1)",color:"#fca5a5",fontSize:"12px"}}>{authError}</div>}
+            {authError&&<div style={{marginBottom:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,color:S.r,fontSize:"13px",border:`1px solid ${S.rbrd}`}}>{authError}</div>}
 
             <button onClick={authMode==="login"?doLogin:doSignup}
-              style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
-              {authMode==="login"?"Log In":"Continue →"}
+              style={{width:"100%",padding:"14px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
+              {authMode==="login"?"Log In →":"Continue →"}
             </button>
 
-            <div style={{textAlign:"center",marginTop:"16px",fontSize:"13px",color:S.mut}}>
+            <div style={{textAlign:"center",marginTop:"20px",fontSize:"13px",color:S.mut}}>
               {authMode==="login"?"Don't have an account? ":"Already have an account? "}
               <button onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthError("");setAuthUser("");setAuthPass("");setAuthName("");}}
-                style={{background:"none",border:"none",color:S.p,cursor:"pointer",fontFamily:S.f,fontSize:"13px",fontWeight:600}}>
+                style={{background:"none",border:"none",color:S.p,cursor:"pointer",fontFamily:S.f,fontSize:"13px",fontWeight:700}}>
                 {authMode==="login"?"Sign Up":"Log In"}
               </button>
             </div>
@@ -977,131 +1024,142 @@ function App() {
   const NavBtn = ({id,icon,label}) => {
     const active = pg===id||(pg==="results"&&id==="scanner")||(pg==="chain"&&id==="dining")||(pg==="histDetail"&&id==="home");
     return (
-      <button onClick={()=>nav(id)} style={{flex:1,padding:"8px 4px 4px",background:"transparent",border:"none",cursor:"pointer",fontFamily:S.f,display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",position:"relative"}}>
-        {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:"24px",height:"2px",borderRadius:"0 0 2px 2px",background:"linear-gradient(90deg,#7c3aed,#a78bfa)"}} />}
-        <div style={{width:"40px",height:"28px",borderRadius:"12px",background:active?"rgba(139,92,246,0.12)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s",fontSize:"17px",filter:active?"none":"grayscale(0.2) opacity(0.6)"}}>{icon}</div>
-        <span style={{fontSize:"10px",fontWeight:active?600:400,color:active?"#c4b5fd":S.mut,letterSpacing:"0.1px",transition:"color 0.2s"}}>{label}</span>
+      <button onClick={()=>nav(id)} style={{flex:1,padding:"10px 4px 6px",background:"transparent",border:"none",cursor:"pointer",fontFamily:S.f,display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",position:"relative"}}>
+        {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:"20px",height:"2.5px",borderRadius:"0 0 3px 3px",background:S.pGrad}} />}
+        <div style={{width:"42px",height:"30px",borderRadius:"12px",background:active?S.pbg:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s",fontSize:"18px",filter:active?"none":"opacity(0.45)"}}>{icon}</div>
+        <span style={{fontSize:"10px",fontWeight:active?700:400,color:active?S.p:S.mut,letterSpacing:"0.1px",transition:"color 0.2s"}}>{label}</span>
       </button>
     );
   };
 
   return (
-    <div style={{minHeight:"100vh",fontFamily:S.f,background:S.bg,color:"#e8e6f0",backgroundImage:"radial-gradient(ellipse 80% 50% at 50% -20%,rgba(139,92,246,0.08),transparent)"}}>
-      <header style={{padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(8,11,20,0.9)",backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",position:"sticky",top:0,zIndex:100}}>
-        <div style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}} onClick={()=>nav("home")}>
-          <div style={{width:"32px",height:"32px",borderRadius:"10px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",boxShadow:"0 2px 12px rgba(34,197,94,0.3)",flexShrink:0}}>🍽</div>
-          <span style={{fontFamily:S.sf,fontSize:"17px",fontWeight:800,color:"#fff",letterSpacing:"-0.4px"}}>Easy Eats</span>
+    <div style={{minHeight:"100vh",fontFamily:S.f,background:S.bg,color:S.text}}>
+      <header style={{padding:"13px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${S.brd}`,background:"rgba(250,250,250,0.92)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>nav("home")}>
+          <div style={{width:"34px",height:"34px",borderRadius:"11px",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"17px",boxShadow:S.shadowBlue,flexShrink:0}}>🍽</div>
+          <span style={{fontFamily:S.sf,fontSize:"18px",fontWeight:400,color:S.text,letterSpacing:"-0.3px"}}>Easy Eats</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-          <div style={{display:"flex",gap:"2px",padding:"4px 8px",background:"rgba(255,255,255,0.05)",borderRadius:"20px",border:`1px solid ${S.brd}`}}>{prof.allergens.slice(0,4).map(id=><span key={id} style={{fontSize:"13px"}}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center",marginLeft:"2px"}}>+{prof.allergens.length-4}</span>}</div>
-          <div onClick={()=>nav("profile")} style={{width:"30px",height:"30px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:"0 2px 12px rgba(124,58,237,0.35)"}}>{prof.name.charAt(0).toUpperCase()}</div>
+          <div style={{display:"flex",gap:"2px",padding:"5px 10px",background:S.card,borderRadius:"20px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>{prof.allergens.slice(0,4).map(id=><span key={id} style={{fontSize:"14px"}}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"10px",color:S.mut,alignSelf:"center",marginLeft:"2px",fontWeight:600}}>+{prof.allergens.length-4}</span>}</div>
+          <div onClick={()=>nav("profile")} style={{width:"32px",height:"32px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:S.shadowBlue}}>{prof.name.charAt(0).toUpperCase()}</div>
         </div>
       </header>
 
-      <main style={{padding:"22px 20px 100px",maxWidth:"600px",margin:"0 auto",opacity:fade?1:0,transition:"opacity 0.18s ease"}}>
+      <main style={{padding:"24px 20px 104px",maxWidth:"600px",margin:"0 auto",opacity:fade?1:0,transition:"opacity 0.18s ease"}}>
 
         {/* ═══ HOME ═══ */}
-        {pg==="home"&&<div>
-          {/* Hero greeting */}
-          <div style={{padding:"20px",borderRadius:"20px",background:"linear-gradient(135deg,rgba(124,58,237,0.18),rgba(139,92,246,0.08))",border:"1px solid rgba(139,92,246,0.2)",marginBottom:"16px",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:-20,right:-20,width:"100px",height:"100px",borderRadius:"50%",background:"rgba(139,92,246,0.08)"}} />
-            <div style={{fontSize:"11px",color:"rgba(167,139,250,0.8)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"6px"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-            <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px",letterSpacing:"-0.4px"}}>Hello, {prof.name}</h1>
-            <p style={{color:"rgba(255,255,255,0.5)",fontSize:"13px",margin:"0 0 14px"}}>Tracking {prof.allergens.length} allergen{prof.allergens.length!==1?"s":""}</p>
-            <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-              {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return a?<span key={id} style={{padding:"3px 8px",background:"rgba(139,92,246,0.2)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:"20px",fontSize:"11px",color:"#c4b5fd",fontWeight:500}}>{a.icon} {a.label}</span>:null;})}
+        {pg==="home"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          {/* Hero greeting — light gradient, matches design ref */}
+          <div style={{marginBottom:"20px",paddingTop:"8px"}}>
+            {/* "NOW AVAILABLE" pill badge */}
+            <div style={{display:"inline-flex",alignItems:"center",gap:"7px",padding:"5px 14px",background:"rgba(255,255,255,0.8)",border:`1px solid ${S.brd}`,borderRadius:"20px",marginBottom:"20px",backdropFilter:"blur(8px)",boxShadow:S.shadowSm}}>
+              <span style={{width:"7px",height:"7px",borderRadius:"50%",background:S.p,display:"inline-block",flexShrink:0}} />
+              <span style={{fontSize:"11px",color:S.text2,fontWeight:700,fontFamily:S.mono,letterSpacing:"1px",textTransform:"uppercase"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</span>
+            </div>
+            {/* Big hero headline with blue accent word + underline */}
+            <h1 style={{fontFamily:S.sf,fontSize:"clamp(28px,6vw,40px)",fontWeight:400,color:S.text,margin:"0 0 6px",letterSpacing:"-0.5px",lineHeight:1.15}}>
+              Hello, {prof.name} —<br/>
+              <span style={{color:S.p,position:"relative",display:"inline-block"}}>
+                stay safe
+                <span style={{position:"absolute",bottom:"-4px",left:0,right:0,height:"4px",background:`linear-gradient(90deg,${S.p},${S.p2})`,borderRadius:"2px",opacity:0.5}} />
+              </span> out there.
+            </h1>
+            <p style={{color:S.mut,fontSize:"14px",margin:"16px 0 0",fontWeight:400,lineHeight:1.5}}>Tracking {prof.allergens.length + (prof.customAllergens||[]).length} allergen{(prof.allergens.length + (prof.customAllergens||[]).length)!==1?"s":""}</p>
+            <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"12px"}}>
+              {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return a?<span key={id} style={{padding:"4px 11px",background:"rgba(255,255,255,0.9)",border:`1px solid ${S.brd}`,borderRadius:"20px",fontSize:"11px",color:S.text2,fontWeight:600,boxShadow:S.shadowSm}}>{a.icon} {a.label}</span>:null;})}
             </div>
           </div>
 
           {hist.length>0 ? <>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"18px"}}>
-              {[{l:"Total",v:hist.length,c:"#a78bfa",bg:"rgba(139,92,246,0.1)",bdr:"rgba(139,92,246,0.2)"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,bg:"rgba(34,197,94,0.08)",bdr:"rgba(34,197,94,0.18)"},{l:"Flagged",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,bg:"rgba(239,68,68,0.08)",bdr:"rgba(239,68,68,0.18)"}].map(s=>(
-                <div key={s.l} style={{padding:"14px 8px",borderRadius:"16px",background:s.bg,border:`1px solid ${s.bdr}`,textAlign:"center"}}>
-                  <div style={{fontSize:"26px",fontWeight:800,fontFamily:S.sf,color:s.c,lineHeight:1,marginBottom:"3px"}}>{s.v}</div>
-                  <div style={{fontSize:"10px",color:s.c,opacity:0.7,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{s.l}</div>
+              {[{l:"Total",v:hist.length,c:S.p,bg:S.pbg,bdr:S.pBrd},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,bg:S.gbg,bdr:S.gbrd},{l:"Flagged",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,bg:S.rbg,bdr:S.rbrd}].map(s=>(
+                <div key={s.l} style={{padding:"16px 10px",borderRadius:"16px",background:s.bg,border:`1px solid ${s.bdr}`,textAlign:"center",boxShadow:S.shadowSm}}>
+                  <div style={{fontSize:"28px",fontWeight:400,fontFamily:S.sf,color:s.c,lineHeight:1,marginBottom:"4px"}}>{s.v}</div>
+                  <div style={{fontSize:"10px",color:s.c,opacity:0.8,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:S.mono}}>{s.l}</div>
                 </div>
               ))}
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-              <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>Recent Scans</span>
-              <span style={{fontSize:"11px",color:S.mut}}>{hist.length} total</span>
+              <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,fontFamily:S.mono}}>Recent Scans</span>
+              <span style={{fontSize:"11px",color:S.mut2}}>{hist.length} total</span>
             </div>
             {hist.slice(0,8).map(h=>(
-              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"12px 14px",marginBottom:"6px",background:S.card,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:"14px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%"}}>
+              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"13px 16px",marginBottom:"7px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"16px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",boxShadow:S.shadowSm,transition:"box-shadow 0.15s"}}>
                 {(()=>{const lr=liveResult(h);const changed=h.ingredients&&lr.overall!==h.overall;const clr=sc(lr.overall);return(<>
-                <div style={{width:"36px",height:"36px",borderRadius:"12px",background:`${clr}15`,border:`1px solid ${clr}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",flexShrink:0}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
+                <div style={{width:"38px",height:"38px",borderRadius:"12px",background:sb(lr.overall),border:`1px solid ${sbrd(lr.overall)}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"17px",flexShrink:0}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:"2px"}}>{h.label}</div>
-                  <div style={{fontSize:"11px",color:S.mut,display:"flex",gap:"8px",alignItems:"center"}}><span>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>{lr.dc>0&&<span style={{color:S.r}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y}}>● {lr.cc} caution</span>}</div>
+                  <div style={{fontWeight:600,fontSize:"14px",color:S.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:"3px"}}>{h.label}</div>
+                  <div style={{fontSize:"11px",color:S.mut,display:"flex",gap:"8px",alignItems:"center",fontFamily:S.mono}}><span>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>{lr.dc>0&&<span style={{color:S.r,fontWeight:600}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y,fontWeight:600}}>● {lr.cc} caution</span>}</div>
                 </div>
-                {changed&&<span style={{fontSize:"9px",fontWeight:700,color:"#fcd34d",background:"rgba(245,158,11,0.12)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:"5px",padding:"2px 6px",flexShrink:0}}>RESCAN</span>}
-                <span style={{color:"rgba(255,255,255,0.15)",fontSize:"14px",flexShrink:0}}>›</span>
+                {changed&&<span style={{fontSize:"9px",fontWeight:700,color:S.y,background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"5px",padding:"2px 7px",flexShrink:0,fontFamily:S.mono}}>RESCAN</span>}
+                <span style={{color:S.mut2,fontSize:"16px",flexShrink:0}}>›</span>
                 </>)})()}
               </button>
             ))}
           </> : (
-            <div style={{textAlign:"center",padding:"48px 20px",background:"rgba(255,255,255,0.03)",borderRadius:"20px",border:`1px solid rgba(255,255,255,0.07)`}}>
-              <div style={{width:"64px",height:"64px",borderRadius:"20px",background:"linear-gradient(135deg,rgba(124,58,237,0.3),rgba(139,92,246,0.15))",border:"1px solid rgba(139,92,246,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",margin:"0 auto 16px"}}>🔬</div>
-              <div style={{fontFamily:S.sf,fontSize:"20px",fontWeight:800,color:"#fff",marginBottom:"8px"}}>No scans yet</div>
-              <div style={{fontSize:"13px",color:S.mut,lineHeight:1.6,marginBottom:"24px",maxWidth:"260px",margin:"0 auto 24px"}}>Take a photo of an ingredient label or search for a food to check it against your allergens.</div>
-              <button onClick={()=>nav("scanner")} style={{padding:"13px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 24px rgba(124,58,237,0.4)"}}>Start Scanning</button>
+            <div style={{textAlign:"center",padding:"52px 24px",background:S.card,borderRadius:"22px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
+              <div style={{width:"68px",height:"68px",borderRadius:"20px",background:S.pbg,border:`1px solid ${S.pBrd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"30px",margin:"0 auto 18px"}}>🔬</div>
+              <div style={{fontFamily:S.sf,fontSize:"22px",fontWeight:400,color:S.text,marginBottom:"10px",letterSpacing:"-0.2px"}}>No scans yet</div>
+              <div style={{fontSize:"13px",color:S.mut,lineHeight:1.65,marginBottom:"26px",maxWidth:"260px",margin:"0 auto 26px"}}>Search for a food or scan a barcode to check it against your allergens.</div>
+              <button onClick={()=>nav("scanner")} style={{padding:"13px 30px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>Start Scanning</button>
             </div>
           )}
         </div>}
 
         {/* ═══ HIST DETAIL ═══ */}
-        {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const resultChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-            <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0}}>← Back</button>
-            <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"7px 14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"9px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>↺ Rescan</button>
+        {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const resultChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+            <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0,fontWeight:600}}>← Back</button>
+            <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"8px 16px",background:S.pGrad,border:"none",borderRadius:"10px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>↺ Rescan</button>
           </div>
-          <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>{viewHist.label}</h2>
-          <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>{new Date(viewHist.date).toLocaleString()}</div>
-          {resultChanged&&<div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:"10px",padding:"9px 14px",marginBottom:"12px",fontSize:"12px",color:"#fcd34d"}}>⚠️ Result differs from original — allergen profile has changed</div>}
-          <div style={{padding:"20px",borderRadius:"16px",marginBottom:"14px",background:sb(lr.overall),border:`1.5px solid ${sc(lr.overall)}33`,textAlign:"center"}}>
-            <div style={{fontSize:"40px",marginBottom:"4px"}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
-            <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:sc(lr.overall)}}>{lr.overall==="safe"?"Likely Safe":lr.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
-            <div style={{fontSize:"12px",color:S.mut,marginTop:"4px"}}>{lr.summary}</div>
+          <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>{viewHist.label}</h2>
+          <div style={{fontSize:"11px",color:S.mut,marginBottom:"12px",fontFamily:S.mono}}>{new Date(viewHist.date).toLocaleString()}</div>
+          {resultChanged&&<div style={{background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"12px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:S.y,fontWeight:500}}>⚠️ Result differs from original — allergen profile has changed</div>}
+          <div style={{padding:"24px 20px",borderRadius:"20px",marginBottom:"16px",background:sb(lr.overall),border:`1.5px solid ${sbrd(lr.overall)}`,textAlign:"center",boxShadow:S.shadowSm}}>
+            <div style={{fontSize:"44px",marginBottom:"6px"}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
+            <div style={{fontSize:"22px",fontWeight:400,fontFamily:S.sf,color:sc(lr.overall),letterSpacing:"-0.3px"}}>{lr.overall==="safe"?"Likely Safe":lr.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
+            <div style={{fontSize:"13px",color:S.mut,marginTop:"6px",lineHeight:1.5}}>{lr.summary}</div>
           </div>
-          <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
-            {[{l:"Danger",c:lr.dc,color:S.r},{l:"Caution",c:lr.cc,color:S.y},{l:"Safe",c:lr.sc,color:S.g}].map(s=>(
-              <div key={s.l} style={{flex:1,padding:"10px",borderRadius:"12px",background:`${s.color}11`,textAlign:"center",border:`1px solid ${s.color}22`}}>
-                <div style={{fontSize:"20px",fontWeight:800,fontFamily:S.sf,color:s.color}}>{s.c}</div>
-                <div style={{fontSize:"9px",color:s.color,fontWeight:600,textTransform:"uppercase"}}>{s.l}</div>
+          <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
+            {[{l:"Danger",c:lr.dc,color:S.r,bg:S.rbg,brd:S.rbrd},{l:"Caution",c:lr.cc,color:S.y,bg:S.ybg,brd:S.ybrd},{l:"Safe",c:lr.sc,color:S.g,bg:S.gbg,brd:S.gbrd}].map(s=>(
+              <div key={s.l} style={{flex:1,padding:"12px 8px",borderRadius:"14px",background:s.bg,textAlign:"center",border:`1px solid ${s.brd}`,boxShadow:S.shadowSm}}>
+                <div style={{fontSize:"22px",fontWeight:400,fontFamily:S.sf,color:s.color}}>{s.c}</div>
+                <div style={{fontSize:"9px",color:s.color,fontWeight:700,textTransform:"uppercase",fontFamily:S.mono,letterSpacing:"0.5px"}}>{s.l}</div>
               </div>
             ))}
           </div>
-          {lr.items.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"12px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✕ Flagged ({lr.items.filter(i=>i.status!=="safe").length})</div>}
+          {lr.items.filter(i=>i.status!=="safe").length>0&&<div style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"9px",fontWeight:700,fontFamily:S.mono}}>✕ Flagged ({lr.items.filter(i=>i.status!=="safe").length})</div>}
           {lr.items.filter(i=>i.status!=="safe").map((item,i)=>(
-            <div key={i} style={{padding:"11px 14px",marginBottom:"5px",borderRadius:"10px",background:sb(item.status),border:`1px solid ${sc(item.status)}22`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
-              <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"5px",background:sc(item.status),flexShrink:0}} />
+            <div key={i} style={{padding:"12px 14px",marginBottom:"6px",borderRadius:"12px",background:sb(item.status),border:`1px solid ${sbrd(item.status)}`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
+              <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"6px",background:sc(item.status),flexShrink:0}} />
               <div style={{flex:1}}>
-                <div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{item.ingredient}{item.allergen&&<span style={{marginLeft:"6px",fontSize:"10px",padding:"2px 6px",background:`${sc(item.status)}22`,borderRadius:"4px",color:sc(item.status)}}>{item.allergen}</span>}</div>
-                <div style={{fontSize:"11px",color:S.mut,marginTop:"1px"}}>{item.reason}</div>
+                <div style={{fontWeight:600,fontSize:"13px",color:S.text}}>{item.ingredient}{item.allergen&&<span style={{marginLeft:"7px",fontSize:"10px",padding:"2px 7px",background:`${sc(item.status)}15`,borderRadius:"6px",color:sc(item.status),fontWeight:700,fontFamily:S.mono}}>{item.allergen}</span>}</div>
+                <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{item.reason}</div>
               </div>
             </div>
           ))}
           {lr.items.filter(i=>i.status==="safe").length>0&&<>
-            <div style={{fontSize:"12px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",margin:"12px 0 8px"}}>✓ Safe ({lr.items.filter(i=>i.status==="safe").length})</div>
+            <div style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",margin:"14px 0 9px",fontWeight:700,fontFamily:S.mono}}>✓ Safe ({lr.items.filter(i=>i.status==="safe").length})</div>
             {lr.items.filter(i=>i.status==="safe").map((item,i)=>(
-              <div key={i} style={{padding:"8px 14px",marginBottom:"3px",borderRadius:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)",fontSize:"12px",color:"rgba(255,255,255,0.5)",display:"flex",alignItems:"center",gap:"8px"}}><span style={{color:S.g}}>✓</span>{item.ingredient}</div>
+              <div key={i} style={{padding:"9px 14px",marginBottom:"4px",borderRadius:"10px",background:S.gbg,border:`1px solid ${S.gbrd}`,fontSize:"12px",color:S.mut,display:"flex",alignItems:"center",gap:"8px"}}><span style={{color:S.g,fontWeight:700}}>✓</span>{item.ingredient}</div>
             ))}
           </>}
 
         </div>);})()}
 
         {/* ═══ SCANNER ═══ */}
-        {pg==="scanner"&&<div>
-          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Ingredient Scanner</h1>
-          <p style={{color:S.mut,fontSize:"13px",marginBottom:"14px",lineHeight:1.5}}>Scan a label photo, search by name, or paste ingredients manually.</p>
+        {pg==="scanner"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>Ingredient Scanner</h1>
+          <p style={{color:S.mut,fontSize:"13px",marginBottom:"18px",lineHeight:1.5}}>Scan a barcode, search by name, or paste ingredients manually.</p>
 
           {/* Tab bar */}
-          <div style={{display:"flex",gap:"4px",marginBottom:"16px",background:"rgba(255,255,255,0.04)",borderRadius:"12px",padding:"4px"}}>
+          <div style={{display:"flex",gap:"5px",marginBottom:"18px",background:S.card,borderRadius:"14px",padding:"5px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
             {[{id:"photo",icon:"📷",label:"Barcode"},{id:"search",icon:"🔍",label:"Search"},{id:"manual",icon:"✏️",label:"Manual"}].map(t=>(
               <button key={t.id} onClick={()=>{ setScannerTab(t.id); setFoodResults([]); setFoodError(""); setNutResults([]); setNutError(""); setBarcodeError(""); if(t.id!=="photo") stopBarcodeScanner(); }}
-                style={{flex:1,padding:"9px 0",border:"none",borderRadius:"9px",fontFamily:S.f,fontSize:"13px",fontWeight:600,cursor:"pointer",transition:"all 0.15s",
-                  background:scannerTab===t.id?"linear-gradient(135deg,#7c3aed,#6d28d9)":"transparent",
-                  color:scannerTab===t.id?"#fff":"rgba(255,255,255,0.4)"}}>
+                style={{flex:1,padding:"10px 0",border:"none",borderRadius:"10px",fontFamily:S.f,fontSize:"13px",fontWeight:600,cursor:"pointer",transition:"all 0.15s",
+                  background:scannerTab===t.id?S.pGrad:"transparent",
+                  color:scannerTab===t.id?"#fff":S.mut,
+                  boxShadow:scannerTab===t.id?S.shadowBlue:"none"}}>
                 {t.icon} {t.label}
               </button>
             ))}
@@ -1109,188 +1167,188 @@ function App() {
 
           {/* Barcode tab */}
           {scannerTab==="photo"&&<div>
-            {foodNoIngredients&&<div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
+            {foodNoIngredients&&<div style={{background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"14px",padding:"14px 16px",marginBottom:"16px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
               <span style={{fontSize:"18px",flexShrink:0}}>🔍</span>
               <div>
-                <div style={{fontSize:"13px",color:"#fcd34d",fontWeight:600,marginBottom:"2px"}}>No ingredient list found for "{foodNoIngredients}"</div>
+                <div style={{fontSize:"13px",color:S.y,fontWeight:600,marginBottom:"3px"}}>No ingredient list found for "{foodNoIngredients}"</div>
                 <div style={{fontSize:"12px",color:S.mut}}>Scan the product's barcode below for a full allergen check.</div>
               </div>
-              <button onClick={()=>setFoodNoIngredients("")} style={{marginLeft:"auto",background:"none",border:"none",color:S.mut,fontSize:"16px",cursor:"pointer",padding:"0",flexShrink:0}}>×</button>
+              <button onClick={()=>setFoodNoIngredients("")} style={{marginLeft:"auto",background:"none",border:"none",color:S.mut2,fontSize:"18px",cursor:"pointer",padding:"0",flexShrink:0}}>×</button>
             </div>}
             {!barcodeScanning ? (
-              <div style={{padding:"28px 16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",marginBottom:"14px"}}>
-                <div style={{fontSize:"36px",marginBottom:"8px"}}>📦</div>
-                <div style={{fontSize:"14px",color:"rgba(255,255,255,0.8)",fontWeight:600,marginBottom:"4px"}}>Scan a Barcode</div>
-                <div style={{fontSize:"12px",color:S.mut,marginBottom:"16px"}}>Point your camera at the barcode on the product</div>
-                <button onClick={startBarcodeScanner} style={{padding:"10px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Start Scanner</button>
+              <div style={{padding:"36px 20px",background:S.card,border:`2px dashed ${S.brd}`,borderRadius:"18px",textAlign:"center",marginBottom:"16px",boxShadow:S.shadowSm}}>
+                <div style={{fontSize:"40px",marginBottom:"12px"}}>📦</div>
+                <div style={{fontSize:"15px",color:S.text,fontWeight:600,marginBottom:"6px",fontFamily:S.sf,fontWeight:400}}>Scan a Barcode</div>
+                <div style={{fontSize:"13px",color:S.mut,marginBottom:"20px",lineHeight:1.5}}>Point your camera at the barcode on the product</div>
+                <button onClick={startBarcodeScanner} style={{padding:"12px 30px",background:S.pGrad,border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>Start Scanner</button>
               </div>
             ) : (
-              <div style={{marginBottom:"14px"}}>
-                <div style={{position:"relative",borderRadius:"14px",overflow:"hidden",background:"#000",marginBottom:"10px"}}>
-                  <video id="barcode-video" style={{width:"100%",display:"block",maxHeight:"220px",objectFit:"cover"}} />
-                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"200px",height:"80px",border:"2px solid #22c55e",borderRadius:"8px",pointerEvents:"none"}} />
-                  {barcodeLoading&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:"#fff"}}>⏳ Looking up product…</div>}
+              <div style={{marginBottom:"16px"}}>
+                <div style={{position:"relative",borderRadius:"16px",overflow:"hidden",background:"#000",marginBottom:"12px",boxShadow:S.shadowMd}}>
+                  <video id="barcode-video" style={{width:"100%",display:"block",maxHeight:"230px",objectFit:"cover"}} />
+                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"200px",height:"80px",border:`2px solid ${S.p2}`,borderRadius:"10px",pointerEvents:"none",boxShadow:`0 0 0 4px rgba(0,82,255,0.15)`}} />
+                  {barcodeLoading&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:"#fff",fontWeight:600}}>⏳ Looking up product…</div>}
                 </div>
-                {barcodeError&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"10px",padding:"10px 12px",fontSize:"12px",color:"#fca5a5",marginBottom:"8px"}}>{barcodeError}</div>}
-                <button onClick={stopBarcodeScanner} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f}}>Stop Scanner</button>
+                {barcodeError&&<div style={{background:S.rbg,border:`1px solid ${S.rbrd}`,borderRadius:"12px",padding:"11px 14px",fontSize:"13px",color:S.r,marginBottom:"10px"}}>{barcodeError}</div>}
+                <button onClick={stopBarcodeScanner} style={{width:"100%",padding:"12px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Stop Scanner</button>
               </div>
             )}
           </div>}
 
           {/* Search tab */}
-          {scannerTab==="search"&&<div style={{marginBottom:"14px"}}>
-            <div style={{display:"flex",gap:"8px",marginBottom:"8px"}}>
+          {scannerTab==="search"&&<div style={{marginBottom:"16px"}}>
+            <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
               <input value={foodQuery}
                 onChange={e=>{setFoodQuery(e.target.value);if(foodError)setFoodError("");if(foodResults.length)setFoodResults([]);}}
                 onKeyDown={e=>e.key==="Enter"&&searchFood()}
                 placeholder="e.g. Oreo, Chobani Greek yogurt, Tyson nuggets..."
-                style={{flex:1,padding:"11px 13px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
+                style={{flex:1,padding:"12px 14px",background:S.card,border:`1.5px solid ${foodError?S.rbrd:S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",boxShadow:S.shadowSm}} />
               <button onClick={()=>searchFood()} disabled={!foodQuery.trim()||foodLoading}
-                style={{padding:"11px 18px",background:foodQuery.trim()&&!foodLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"10px",color:foodQuery.trim()&&!foodLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"13px",fontWeight:700,cursor:foodQuery.trim()&&!foodLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
+                style={{padding:"12px 20px",background:foodQuery.trim()&&!foodLoading?S.pGrad:"#F3F4F6",border:"none",borderRadius:"12px",color:foodQuery.trim()&&!foodLoading?"#fff":S.mut2,fontSize:"14px",fontWeight:700,cursor:foodQuery.trim()&&!foodLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap",boxShadow:foodQuery.trim()&&!foodLoading?S.shadowBlue:"none"}}>
                 {foodLoading?"…":"Search"}
               </button>
             </div>
-            {foodError&&<div style={{fontSize:"12px",color:"#fca5a5",marginBottom:"8px",padding:"9px 12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"8px"}}>{foodError}</div>}
-            {foodResults.length>0&&<div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+            {foodError&&<div style={{fontSize:"13px",color:S.r,marginBottom:"10px",padding:"10px 14px",background:S.rbg,border:`1px solid ${S.rbrd}`,borderRadius:"10px"}}>{foodError}</div>}
+            {foodResults.length>0&&<div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
               {foodResults.map((item,i)=>(
                 <button key={i} onClick={()=>pickFoodResult(item)}
-                  style={{padding:"11px 13px",background:"rgba(255,255,255,0.03)",border:`1px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"10px",width:"100%"}}>
+                  style={{padding:"13px 14px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"12px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",display:"flex",alignItems:"center",gap:"10px",width:"100%",boxShadow:S.shadowSm}}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
-                    <div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{item.brand||item.category||""}{item.ingredients?<span style={{marginLeft:item.brand?6:0,color:"rgba(255,255,255,0.3)"}}>{item.ingredients.split(",").slice(0,3).join(", ")}{item.ingredients.split(",").length>3?"…":""}</span>:<span style={{marginLeft:item.brand?6:0,color:S.mut}}>Allergen check by name</span>}</div>
+                    <div style={{fontWeight:600,fontSize:"14px",color:S.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
+                    <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{item.brand||""}{item.ingredients?<span style={{marginLeft:item.brand?6:0,color:S.mut2}}>{item.ingredients.split(",").slice(0,3).join(", ")}{item.ingredients.split(",").length>3?"…":""}</span>:<span style={{marginLeft:item.brand?6:0,color:S.mut2}}>Allergen check by name</span>}</div>
                   </div>
-                  <span style={{fontSize:"11px",color:S.p,fontWeight:600,flexShrink:0}}>Scan →</span>
+                  <span style={{fontSize:"12px",color:S.p,fontWeight:700,flexShrink:0}}>Scan →</span>
                 </button>
               ))}
             </div>}
-            {!foodLoading&&foodResults.length===0&&!foodError&&<div style={{padding:"20px",textAlign:"center",background:S.card,borderRadius:"12px",border:`1px solid ${S.brd}`}}>
-              <div style={{fontSize:"28px",marginBottom:"6px"}}>🔍</div>
-              <div style={{fontSize:"13px",color:"rgba(255,255,255,0.4)"}}>Search the Edamam food database to scan a product</div>
+            {!foodLoading&&foodResults.length===0&&!foodError&&<div style={{padding:"28px 20px",textAlign:"center",background:S.card,borderRadius:"16px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
+              <div style={{fontSize:"32px",marginBottom:"8px"}}>🔍</div>
+              <div style={{fontSize:"13px",color:S.mut}}>Search the USDA food database to scan a product</div>
             </div>}
           </div>}
 
           {/* Manual tab */}
-          {scannerTab==="manual"&&<div style={{marginBottom:"14px"}}>
+          {scannerTab==="manual"&&<div style={{marginBottom:"16px"}}>
             <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="Paste or type ingredient list here..."
-              style={{width:"100%",minHeight:"130px",padding:"14px",background:"rgba(255,255,255,0.04)",border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:"#e8e6f0",fontFamily:S.f,fontSize:"14px",lineHeight:1.6,resize:"vertical",outline:"none",boxSizing:"border-box"}} />
+              style={{width:"100%",minHeight:"140px",padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"16px",color:S.text,fontFamily:S.f,fontSize:"14px",lineHeight:1.65,resize:"vertical",boxSizing:"border-box",boxShadow:S.shadowSm}} />
           </div>}
 
-          {/* Scan button — always shown when text is ready */}
+          {/* Scan button */}
           {txt.trim()&&!ocrBad&&<button onClick={()=>doScan(txt, photoLabel.trim()||"")}
-            style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 20px rgba(124,58,237,0.35)"}}>
+            style={{width:"100%",padding:"16px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
             🔬 Scan for Allergens
           </button>}
           {!txt.trim()&&scannerTab!=="search"&&<button disabled
-            style={{width:"100%",padding:"15px",background:"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:"rgba(255,255,255,0.2)",fontSize:"15px",fontWeight:700,cursor:"default",fontFamily:S.f}}>
+            style={{width:"100%",padding:"16px",background:"#F3F4F6",border:`1px solid ${S.brd}`,borderRadius:"14px",color:S.mut2,fontSize:"15px",fontWeight:700,cursor:"default",fontFamily:S.f}}>
             🔬 Scan for Allergens
           </button>}
         </div>}
 
         {/* ═══ RESULTS ═══ */}
-        {pg==="results"&&res&&<div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-            <button onClick={goBackFromResults} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600,display:"flex",alignItems:"center",gap:"4px"}}>‹ Back</button>
-            <button onClick={()=>shareResults(res,resLabel)} style={{padding:"7px 14px",background:copied?"rgba(34,197,94,0.12)":"rgba(255,255,255,0.06)",border:`1px solid ${copied?"rgba(34,197,94,0.3)":S.brd}`,borderRadius:"20px",color:copied?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>
+        {pg==="results"&&res&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+            <button onClick={goBackFromResults} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:700,display:"flex",alignItems:"center",gap:"4px"}}>‹ Back</button>
+            <button onClick={()=>shareResults(res,resLabel)} style={{padding:"8px 16px",background:copied?S.gbg:S.card,border:`1.5px solid ${copied?S.gbrd:S.brd}`,borderRadius:"20px",color:copied?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
               {copied?"✓ Copied":"📋 Share"}
             </button>
           </div>
-          <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 14px",letterSpacing:"-0.3px"}}>{resLabel||"Scan Results"}</h2>
-          <div style={{padding:"24px 20px",borderRadius:"20px",marginBottom:"14px",background:sb(res.overall),border:`1.5px solid ${sc(res.overall)}44`,textAlign:"center",boxShadow:S.shadowSm}}>
-            <div style={{fontSize:"48px",marginBottom:"6px"}}>{res.overall==="safe"?"✅":res.overall==="caution"?"⚠️":"🚫"}</div>
-            <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:sc(res.overall),marginBottom:"6px"}}>{res.overall==="safe"?"Looks Safe":"Use Caution" }</div>
-            <div style={{fontSize:"13px",color:"rgba(255,255,255,0.55)",lineHeight:1.5}}>{res.summary}</div>
+          <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 16px",letterSpacing:"-0.3px"}}>{resLabel||"Scan Results"}</h2>
+          <div style={{padding:"28px 24px",borderRadius:"22px",marginBottom:"16px",background:sb(res.overall),border:`1.5px solid ${sbrd(res.overall)}`,textAlign:"center",boxShadow:S.shadowSm}}>
+            <div style={{fontSize:"52px",marginBottom:"8px"}}>{res.overall==="safe"?"✅":res.overall==="caution"?"⚠️":"🚫"}</div>
+            <div style={{fontSize:"24px",fontWeight:400,fontFamily:S.sf,color:sc(res.overall),marginBottom:"8px",letterSpacing:"-0.3px"}}>{res.overall==="safe"?"Looks Safe":res.overall==="caution"?"Use Caution":"Contains Allergens"}</div>
+            <div style={{fontSize:"13px",color:S.mut,lineHeight:1.55}}>{res.summary}</div>
           </div>
-          <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
-            {[{l:"Danger",c:res.items.filter(i=>i.status==="danger").length,color:S.r},{l:"Caution",c:res.items.filter(i=>i.status==="caution").length,color:S.y},{l:"Safe",c:res.items.filter(i=>i.status==="safe").length,color:S.g}].map(s=>(
-              <div key={s.l} style={{flex:1,padding:"12px 8px",borderRadius:"14px",background:`${s.color}10`,textAlign:"center",border:`1px solid ${s.color}25`}}>
-                <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:s.color,lineHeight:1}}>{s.c}</div>
-                <div style={{fontSize:"9px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"4px"}}>{s.l}</div>
+          <div style={{display:"flex",gap:"8px",marginBottom:"18px"}}>
+            {[{l:"Danger",c:res.items.filter(i=>i.status==="danger").length,color:S.r,bg:S.rbg,brd:S.rbrd},{l:"Caution",c:res.items.filter(i=>i.status==="caution").length,color:S.y,bg:S.ybg,brd:S.ybrd},{l:"Safe",c:res.items.filter(i=>i.status==="safe").length,color:S.g,bg:S.gbg,brd:S.gbrd}].map(s=>(
+              <div key={s.l} style={{flex:1,padding:"14px 10px",borderRadius:"16px",background:s.bg,textAlign:"center",border:`1px solid ${s.brd}`,boxShadow:S.shadowSm}}>
+                <div style={{fontSize:"24px",fontWeight:400,fontFamily:S.sf,color:s.color,lineHeight:1}}>{s.c}</div>
+                <div style={{fontSize:"9px",color:s.color,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"5px",fontFamily:S.mono}}>{s.l}</div>
               </div>
             ))}
           </div>
           {/* Name-only scan notice */}
           {res.scannedText&&res.items.length<=2&&res.items.every(i=>res.scannedText.trim().toLowerCase().startsWith(i.ingredient.toLowerCase()))&&(
-            <div style={{padding:"10px 14px",borderRadius:"10px",background:"rgba(245,158,11,0.07)",border:"1px solid rgba(245,158,11,0.2)",marginBottom:"12px",fontSize:"12px",color:"#fcd34d"}}>
+            <div style={{padding:"12px 14px",borderRadius:"12px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"14px",fontSize:"12px",color:S.y,fontWeight:500}}>
               ⚠️ No ingredient list found — result is based on the food name only. For a full check, paste the label ingredients in the Manual tab.
             </div>
           )}
 
           {/* Flagged ingredients */}
           {res.items.filter(i=>i.status!=="safe").length>0&&<>
-            <div style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"8px"}}>Flagged ({res.items.filter(i=>i.status!=="safe").length})</div>
+            <div style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,marginBottom:"9px",fontFamily:S.mono}}>Flagged ({res.items.filter(i=>i.status!=="safe").length})</div>
             {res.items.filter(i=>i.status!=="safe").map((item,i)=>(
-              <div key={i} style={{padding:"12px 14px",marginBottom:"6px",borderRadius:"12px",background:sb(item.status),border:`1px solid ${sc(item.status)}28`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
+              <div key={i} style={{padding:"13px 16px",marginBottom:"6px",borderRadius:"14px",background:sb(item.status),border:`1px solid ${sbrd(item.status)}`,display:"flex",alignItems:"flex-start",gap:"10px"}}>
                 <div style={{width:"8px",height:"8px",borderRadius:"50%",marginTop:"6px",background:sc(item.status),flexShrink:0}} />
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{item.ingredient}{item.allergen&&<span style={{marginLeft:"6px",fontSize:"10px",padding:"2px 6px",background:`${sc(item.status)}22`,borderRadius:"4px",color:sc(item.status)}}>{item.allergen}</span>}</div>
-                  <div style={{fontSize:"11px",color:S.mut,marginTop:"1px"}}>{item.reason}</div>
+                  <div style={{fontWeight:600,fontSize:"13px",color:S.text}}>{item.ingredient}{item.allergen&&<span style={{marginLeft:"7px",fontSize:"10px",padding:"2px 7px",background:`${sc(item.status)}15`,borderRadius:"6px",color:sc(item.status),fontWeight:700,fontFamily:S.mono}}>{item.allergen}</span>}</div>
+                  <div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{item.reason}</div>
                 </div>
               </div>
             ))}
           </>}
 
-          {/* Safe ingredients — always expanded */}
+          {/* Safe ingredients */}
           {res.items.filter(i=>i.status==="safe").length>0&&<>
-            <div style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,margin:"12px 0 8px"}}>Safe ({res.items.filter(i=>i.status==="safe").length})</div>
+            <div style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,margin:"14px 0 9px",fontFamily:S.mono}}>Safe ({res.items.filter(i=>i.status==="safe").length})</div>
             {res.items.filter(i=>i.status==="safe").map((item,i)=>(
-              <div key={i} style={{padding:"8px 14px",marginBottom:"3px",borderRadius:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)",fontSize:"12px",color:"rgba(255,255,255,0.55)",display:"flex",alignItems:"center",gap:"8px"}}>
-                <span style={{color:S.g,fontSize:"11px"}}>✓</span>{item.ingredient}
+              <div key={i} style={{padding:"9px 14px",marginBottom:"4px",borderRadius:"10px",background:S.gbg,border:`1px solid ${S.gbrd}`,fontSize:"12px",color:S.mut,display:"flex",alignItems:"center",gap:"8px"}}>
+                <span style={{color:S.g,fontSize:"12px",fontWeight:700}}>✓</span>{item.ingredient}
               </div>
             ))}
           </>}
 
-          {/* Full ingredient list used for scan */}
-          {res.scannedText&&res.items.length>2&&<details style={{marginTop:"14px"}}>
-            <summary style={{fontSize:"11px",color:S.mut,cursor:"pointer",fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>View full ingredient list</summary>
-            <div style={{marginTop:"8px",padding:"12px 14px",borderRadius:"10px",background:"rgba(255,255,255,0.03)",border:`1px solid ${S.brd}`,fontSize:"12px",color:"rgba(255,255,255,0.45)",lineHeight:1.7}}>{res.scannedText}</div>
+          {/* Full ingredient list */}
+          {res.scannedText&&res.items.length>2&&<details style={{marginTop:"16px"}}>
+            <summary style={{fontSize:"11px",color:S.mut,cursor:"pointer",fontWeight:700,letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:S.mono}}>View full ingredient list</summary>
+            <div style={{marginTop:"10px",padding:"14px 16px",borderRadius:"12px",background:S.card,border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,lineHeight:1.75,fontFamily:S.mono,boxShadow:S.shadowSm}}>{res.scannedText}</div>
           </details>}
         </div>}
 
         {/* ═══ NUTRITION ═══ */}
-        {pg==="nutrition"&&<div>
-          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Nutrition Lookup</h1>
-          <p style={{color:S.mut,fontSize:"13px",marginBottom:"16px",lineHeight:1.5}}>Search any food to see if you can eat it — allergen check + nutrition info.</p>
-          <div style={{display:"flex",gap:"8px",marginBottom:"12px"}}>
+        {pg==="nutrition"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>Nutrition Lookup</h1>
+          <p style={{color:S.mut,fontSize:"13px",marginBottom:"18px",lineHeight:1.5}}>Search any food to see if you can eat it — allergen check + nutrition info.</p>
+          <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
             <input value={nutQuery} onChange={e=>{setNutQuery(e.target.value);if(nutError)setNutError("");}} onKeyDown={e=>e.key==="Enter"&&searchNutrition()}
               placeholder="e.g. Greek yogurt, almonds, cheddar cheese..."
-              style={{flex:1,padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${nutError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"12px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
+              style={{flex:1,padding:"13px 14px",background:S.card,border:`1.5px solid ${nutError?S.rbrd:S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",boxShadow:S.shadowSm}} />
             <button onClick={()=>searchNutrition()} disabled={!nutQuery.trim()||nutLoading}
-              style={{padding:"12px 20px",background:nutQuery.trim()&&!nutLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:nutQuery.trim()&&!nutLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"14px",fontWeight:700,cursor:nutQuery.trim()&&!nutLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
+              style={{padding:"13px 20px",background:nutQuery.trim()&&!nutLoading?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:nutQuery.trim()&&!nutLoading?"#fff":S.mut2,fontSize:"14px",fontWeight:700,cursor:nutQuery.trim()&&!nutLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap",boxShadow:nutQuery.trim()&&!nutLoading?S.shadowBlue:"none"}}>
               {nutLoading?"…":"Search"}
             </button>
           </div>
-          {nutError&&<div style={{fontSize:"12px",color:"#fca5a5",marginBottom:"12px",padding:"10px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"10px"}}>{nutError}</div>}
+          {nutError&&<div style={{fontSize:"13px",color:S.r,marginBottom:"14px",padding:"11px 14px",background:S.rbg,border:`1px solid ${S.rbrd}`,borderRadius:"12px"}}>{nutError}</div>}
           {nutSelected ? (
             <div>
-              <button onClick={()=>{setNutSelected(null);setNutDetail(null);setNutError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back to results</button>
-              <div style={{padding:"16px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",marginBottom:"12px"}}>
-                <div style={{fontSize:"18px",fontWeight:800,color:"#fff",fontFamily:S.sf,marginBottom:"2px"}}>{nutSelected.label}</div>
-                {nutSelected.brand&&<div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{nutSelected.brand}</div>}
-                {/* Allergen status — use ingredients if available, fall back to food name */}
+              <button onClick={()=>{setNutSelected(null);setNutDetail(null);setNutError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:700}}>← Back to results</button>
+              <div style={{padding:"20px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"18px",marginBottom:"14px",boxShadow:S.shadow}}>
+                <div style={{fontSize:"20px",fontWeight:400,color:S.text,fontFamily:S.sf,marginBottom:"2px",letterSpacing:"-0.2px"}}>{nutSelected.label}</div>
+                {nutSelected.brand&&<div style={{fontSize:"12px",color:S.mut,marginBottom:"14px",fontFamily:S.mono}}>{nutSelected.brand}</div>}
                 {(()=>{
                   const scanText = nutSelected.ingredients || nutSelected.label;
                   const scan = runScan(scanText, prof.allergens, prof.customAllergens);
                   const color = scan.overall==="safe"?S.g:scan.overall==="caution"?S.y:S.r;
+                  const bg = scan.overall==="safe"?S.gbg:scan.overall==="caution"?S.ybg:S.rbg;
+                  const brd = scan.overall==="safe"?S.gbrd:scan.overall==="caution"?S.ybrd:S.rbrd;
                   const icon = scan.overall==="safe"?"✅":scan.overall==="caution"?"⚠️":"🚫";
                   const lbl = scan.overall==="safe"?"Safe for you":scan.overall==="caution"?"Use caution":"Contains your allergens";
                   return(
-                    <div style={{padding:"12px",borderRadius:"10px",background:`${color}11`,border:`1px solid ${color}33`,marginBottom:"12px",display:"flex",alignItems:"center",gap:"10px"}}>
-                      <span style={{fontSize:"22px"}}>{icon}</span>
-                      <div><div style={{fontWeight:700,fontSize:"13px",color}}>{lbl}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{scan.summary}{!nutSelected.ingredients&&<span style={{marginLeft:"4px",opacity:0.6}}>(based on food name)</span>}</div></div>
+                    <div style={{padding:"14px",borderRadius:"12px",background:bg,border:`1px solid ${brd}`,marginBottom:"14px",display:"flex",alignItems:"center",gap:"10px"}}>
+                      <span style={{fontSize:"24px"}}>{icon}</span>
+                      <div><div style={{fontWeight:700,fontSize:"14px",color}}>{lbl}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"3px"}}>{scan.summary}{!nutSelected.ingredients&&<span style={{marginLeft:"4px",opacity:0.7}}>(based on food name)</span>}</div></div>
                     </div>
                   );
                 })()}
-                {/* Nutrients */}
-                {nutDetailLoading&&<div style={{textAlign:"center",padding:"16px",fontSize:"13px",color:S.mut}}>⏳ Loading full nutrition data…</div>}
+                {nutDetailLoading&&<div style={{textAlign:"center",padding:"18px",fontSize:"13px",color:S.mut}}>⏳ Loading full nutrition data…</div>}
                 {!nutDetailLoading&&(()=>{
                   const tn = nutDetail ? nutDetail.totalNutrients : null;
                   const n = nutSelected.nutrients || {};
                   const cal = tn ? Math.round(tn.ENERC_KCAL?.quantity||0) : Math.round(n.ENERC_KCAL||0);
                   const macros = [
-                    {l:"Calories",v:cal,u:"kcal",color:"#f59e0b"},
-                    {l:"Protein",v:Math.round(tn?tn.PROCNT?.quantity||0:n.PROCNT||0),u:"g",color:"#22c55e"},
-                    {l:"Fat",v:Math.round(tn?tn.FAT?.quantity||0:n.FAT||0),u:"g",color:"#ef4444"},
-                    {l:"Carbs",v:Math.round(tn?tn.CHOCDF?.quantity||0:n.CHOCDF||0),u:"g",color:"#3b82f6"},
+                    {l:"Calories",v:cal,u:"kcal",color:S.y},
+                    {l:"Protein",v:Math.round(tn?tn.PROCNT?.quantity||0:n.PROCNT||0),u:"g",color:S.g},
+                    {l:"Fat",v:Math.round(tn?tn.FAT?.quantity||0:n.FAT||0),u:"g",color:S.r},
+                    {l:"Carbs",v:Math.round(tn?tn.CHOCDF?.quantity||0:n.CHOCDF||0),u:"g",color:S.p},
                   ];
                   const extras = tn ? [
                     {l:"Fiber",v:(tn.FIBTG?.quantity||0).toFixed(1),u:"g"},
@@ -1304,23 +1362,22 @@ function App() {
                   ].filter(e=>e.v>0) : [];
                   return(
                     <div>
-                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"8px"}}>
+                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,marginBottom:"10px",fontFamily:S.mono}}>
                         {tn ? "Full Nutrition" : "Nutrition per 100g"}
-                        {tn&&<span style={{marginLeft:"6px",color:S.g,fontSize:"9px"}}>● Powered by Edamam</span>}
                       </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom: extras.length?"12px":"0"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:extras.length?"14px":"0"}}>
                         {macros.map(m=>(
-                          <div key={m.l} style={{padding:"12px",borderRadius:"10px",background:`${m.color}11`,border:`1px solid ${m.color}22`,textAlign:"center"}}>
-                            <div style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:m.color}}>{m.v}<span style={{fontSize:"11px",fontWeight:400,marginLeft:"2px"}}>{m.u}</span></div>
-                            <div style={{fontSize:"10px",color:S.mut,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"2px"}}>{m.l}</div>
+                          <div key={m.l} style={{padding:"14px",borderRadius:"14px",background:`${m.color}0D`,border:`1px solid ${m.color}25`,textAlign:"center",boxShadow:S.shadowSm}}>
+                            <div style={{fontSize:"24px",fontWeight:400,fontFamily:S.sf,color:m.color}}>{m.v}<span style={{fontSize:"12px",fontWeight:400,marginLeft:"2px",color:S.mut}}>{m.u}</span></div>
+                            <div style={{fontSize:"10px",color:S.mut,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:"3px",fontFamily:S.mono}}>{m.l}</div>
                           </div>
                         ))}
                       </div>
                       {extras.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
                         {extras.map(e=>(
-                          <div key={e.l} style={{padding:"8px 12px",borderRadius:"8px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <span style={{fontSize:"11px",color:S.mut}}>{e.l}</span>
-                            <span style={{fontSize:"12px",fontWeight:700,color:"rgba(255,255,255,0.8)"}}>{e.v}<span style={{fontSize:"9px",color:S.mut,marginLeft:"2px"}}>{e.u}</span></span>
+                          <div key={e.l} style={{padding:"9px 12px",borderRadius:"10px",background:S.bg,border:`1px solid ${S.brd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:"11px",color:S.mut,fontFamily:S.mono}}>{e.l}</span>
+                            <span style={{fontSize:"12px",fontWeight:700,color:S.text2}}>{e.v}<span style={{fontSize:"9px",color:S.mut2,marginLeft:"2px"}}>{e.u}</span></span>
                           </div>
                         ))}
                       </div>}
@@ -1329,246 +1386,263 @@ function App() {
                 })()}
               </div>
               <button onClick={()=>{doScan(nutSelected.ingredients||nutSelected.label, nutSelected.label);}}
-                style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
+                style={{width:"100%",padding:"15px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
                 🔬 Full Allergen Scan
               </button>
             </div>
           ) : nutResults.length>0 ? (
-            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
               {nutResults.map((item,i)=>{
-                const hasNut = Object.keys(item.nutrients).length>0;
                 const cal = item.nutrients.ENERC_KCAL ? Math.round(item.nutrients.ENERC_KCAL)+"kcal" : null;
-                const canScan = !!item.ingredients;
-                const scanResult = canScan ? runScan(item.ingredients, prof.allergens, prof.customAllergens) : null;
-                const statusColor = scanResult ? (scanResult.overall==="safe"?S.g:scanResult.overall==="caution"?S.y:S.r) : S.brd;
+                const sr = runScan(item.ingredients||item.label, prof.allergens, prof.customAllergens);
                 return(
                   <button key={i} onClick={()=>setNutSelected(item)}
-                    style={{padding:"12px 14px",background:S.card,border:`1px solid ${statusColor}33`,borderRadius:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"12px",width:"100%"}}>
+                    style={{padding:"13px 16px",background:S.card,border:`1px solid ${sbrd(sr.overall)}`,borderRadius:"14px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",display:"flex",alignItems:"center",gap:"12px",width:"100%",boxShadow:S.shadowSm}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
-                      <div style={{fontSize:"10px",color:S.mut,marginTop:"2px"}}>{item.brand||item.category||"Food item"}{cal&&<span style={{marginLeft:"8px",color:"#f59e0b"}}>{cal}</span>}</div>
+                      <div style={{fontWeight:600,fontSize:"14px",color:S.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
+                      <div style={{fontSize:"11px",color:S.mut,marginTop:"3px",fontFamily:S.mono}}>{item.brand||"Food item"}{cal&&<span style={{marginLeft:"8px",color:S.y,fontWeight:600}}>{cal}</span>}</div>
                     </div>
-                    {(()=>{const sr=runScan(item.ingredients||item.label,prof.allergens,prof.customAllergens);return <span style={{fontSize:"14px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>})()}
-                    <span style={{fontSize:"11px",color:S.mut}}>→</span>
+                    <span style={{fontSize:"16px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>
+                    <span style={{fontSize:"13px",color:S.mut2}}>→</span>
                   </button>
                 );
               })}
             </div>
           ) : !nutLoading&&(
-            <div style={{padding:"32px 20px",textAlign:"center",background:S.card,borderRadius:"14px",border:`1px solid ${S.brd}`}}>
-              <div style={{fontSize:"40px",marginBottom:"8px"}}>🍎</div>
-              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>Search any food to check if it's safe for you and see its nutritional info</div>
+            <div style={{padding:"40px 24px",textAlign:"center",background:S.card,borderRadius:"18px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
+              <div style={{fontSize:"44px",marginBottom:"10px"}}>🍎</div>
+              <div style={{fontSize:"14px",color:S.mut,lineHeight:1.6}}>Search any food to check if it's safe for you and see its nutritional info</div>
             </div>
           )}
         </div>}
 
         {/* ═══ DINING ═══ */}
-        {pg==="dining"&&!viewChain&&<div>
-          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>Dining Guide</h1>
-          <p style={{color:S.mut,fontSize:"13px",marginBottom:"16px",lineHeight:1.5}}>Search any US location to find real nearby restaurants with menus filtered by your allergens.</p>
+        {pg==="dining"&&!viewChain&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>Dining Guide</h1>
+          <p style={{color:S.mut,fontSize:"13px",marginBottom:"18px",lineHeight:1.5}}>Search any US location to find real nearby restaurants with menus filtered by your allergens.</p>
           <div style={{position:"relative",marginBottom:"16px"}}>
             <div style={{display:"flex",gap:"8px"}}>
               <input value={locInput} onChange={e=>{setLocInput(e.target.value);setShowSuggestions(true);setLocError("");if(locSet)setLocSet("");}} onFocus={()=>{if(!locSet)setShowSuggestions(true);}} placeholder="City, address, or zip code" onKeyDown={e=>{if(e.key==="Enter"){searchLocation();setShowSuggestions(false);}}} disabled={locLoading}
-                style={{flex:1,padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${locError?S.r:S.brd}`,borderRadius:"12px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box",opacity:locLoading?0.5:1}} />
+                style={{flex:1,padding:"13px 14px",background:S.card,border:`1.5px solid ${locError?S.rbrd:S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",opacity:locLoading?0.5:1,boxShadow:S.shadowSm}} />
               <button onClick={()=>searchLocation()} disabled={!locInput.trim()||locLoading}
-                style={{padding:"12px 18px",background:locInput.trim()&&!locLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:locInput.trim()&&!locLoading?"#fff":"rgba(255,255,255,0.2)",fontWeight:700,cursor:locInput.trim()&&!locLoading?"pointer":"default",fontFamily:S.f,fontSize:"14px",whiteSpace:"nowrap"}}>
+                style={{padding:"13px 18px",background:locInput.trim()&&!locLoading?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:locInput.trim()&&!locLoading?"#fff":S.mut2,fontWeight:700,cursor:locInput.trim()&&!locLoading?"pointer":"default",fontFamily:S.f,fontSize:"14px",whiteSpace:"nowrap",boxShadow:locInput.trim()&&!locLoading?S.shadowBlue:"none"}}>
                 {locLoading?"Searching...":"📍 Search"}
               </button>
             </div>
             {showSuggestions&&filteredCities.length>0&&(
-              <div style={{position:"absolute",top:"52px",left:0,right:0,background:"#1a1d2e",border:`1px solid ${S.brd}`,borderRadius:"12px",overflow:"hidden",zIndex:50,boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
+              <div style={{position:"absolute",top:"56px",left:0,right:0,background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",overflow:"hidden",zIndex:50,boxShadow:S.shadowMd}}>
                 {filteredCities.map(c=>(
-                  <button key={c.name} onClick={()=>searchLocation(c.name)} style={{width:"100%",padding:"12px 16px",background:"transparent",border:"none",borderBottom:`1px solid ${S.brd}`,color:"#e8e6f0",fontSize:"14px",fontFamily:S.f,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"8px"}}>
+                  <button key={c.name} onClick={()=>searchLocation(c.name)} style={{width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:`1px solid ${S.brd}`,color:S.text,fontSize:"14px",fontFamily:S.f,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"8px"}}>
                     <span style={{color:S.p}}>📍</span>{c.name}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          {locError&&<div style={{marginTop:"-10px",marginBottom:"12px",padding:"10px 14px",borderRadius:"8px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",color:"#fca5a5",fontSize:"12px"}}>{locError}</div>}
-          {locLoading&&<div style={{marginBottom:"12px",padding:"16px",borderRadius:"12px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center"}}>
-            <div style={{fontSize:"14px",color:S.p,marginBottom:"4px"}}>Searching nearby restaurants...</div>
+          {locError&&<div style={{marginTop:"-8px",marginBottom:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,border:`1px solid ${S.rbrd}`,color:S.r,fontSize:"13px"}}>{locError}</div>}
+          {locLoading&&<div style={{marginBottom:"14px",padding:"18px",borderRadius:"14px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",boxShadow:S.shadowSm}}>
+            <div style={{fontSize:"14px",color:S.p,marginBottom:"5px",fontWeight:600}}>Searching nearby restaurants...</div>
             <div style={{fontSize:"11px",color:S.mut}}>Checking OpenStreetMap for real locations</div>
           </div>}
           {locSet&&!locLoading&&<>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-              <div style={{fontSize:"12px",color:S.p,fontWeight:600}}>📍 Near "{locSet}" — {nearbyResults.length} locations {usingRealData&&<span style={{fontSize:"10px",color:S.g,marginLeft:"4px"}}>(live data)</span>}</div>
-              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setShowSuggestions(false);setLocError("");setUsingRealData(false);setMapCenter(null);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f}}>Clear</button>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+              <div style={{fontSize:"12px",color:S.p,fontWeight:700,display:"flex",alignItems:"center",gap:"6px"}}>📍 Near "{locSet}" — {nearbyResults.length} locations {usingRealData&&<span style={{fontSize:"10px",color:S.g,background:S.gbg,border:`1px solid ${S.gbrd}`,padding:"1px 7px",borderRadius:"10px",fontFamily:S.mono}}>live</span>}</div>
+              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setShowSuggestions(false);setLocError("");setUsingRealData(false);setMapCenter(null);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Clear</button>
             </div>
-            {mapCenter&&<div ref={mapRef} style={{height:"220px",borderRadius:"14px",marginBottom:"14px",overflow:"hidden",border:`1px solid ${S.brd}`,zIndex:0}} />}
+            {mapCenter&&<div ref={mapRef} style={{height:"230px",borderRadius:"16px",marginBottom:"16px",overflow:"hidden",border:`1px solid ${S.brd}`,zIndex:0,boxShadow:S.shadowSm}} />}
             {nearbyResults.map(nr=>{
               const {safe,danger,pct}=chainScore(nr);
               const color=pct>=70?S.g:pct>=40?S.y:S.r;
-              return(<button key={nr.locId} onClick={()=>{setViewChain(nr);nav("chain",true);}} style={{padding:"14px 16px",marginBottom:"6px",borderRadius:"14px",background:S.card,border:`1px solid ${color}22`,cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"12px"}}>
-                <span style={{fontSize:"26px"}}>{nr.icon}</span>
-                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:"14px",color:"#fff"}}>{nr.name}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"1px"}}>{nr.address} · {nr.distance} mi</div><div style={{fontSize:"10px",color:S.mut}}>{safe} safe · {danger} allergens</div></div>
-                <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:"18px",fontWeight:800,fontFamily:S.sf,color}}>{pct}%</div><div style={{fontSize:"9px",color,fontWeight:600,textTransform:"uppercase"}}>safe</div></div>
+              const bg=pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
+              const brd=pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
+              return(<button key={nr.locId} onClick={()=>{setViewChain(nr);nav("chain",true);}} style={{padding:"14px 16px",marginBottom:"7px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"12px",boxShadow:S.shadowSm}}>
+                <span style={{fontSize:"28px"}}>{nr.icon}</span>
+                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:"14px",color:S.text}}>{nr.name}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px",fontFamily:S.mono}}>{nr.address} · {nr.distance} mi</div></div>
+                <div style={{textAlign:"right",flexShrink:0,padding:"6px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"10px"}}><div style={{fontSize:"18px",fontWeight:400,fontFamily:S.sf,color}}>{pct}%</div><div style={{fontSize:"9px",color,fontWeight:700,textTransform:"uppercase",fontFamily:S.mono}}>safe</div></div>
               </button>);
             })}
           </>}
           {!locSet&&!locLoading&&<>
-            <div style={{padding:"24px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",marginBottom:"20px"}}>
-              <div style={{fontSize:"40px",marginBottom:"8px"}}>📍</div>
-              <div style={{fontSize:"14px",color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>Search any city, address, or zip code to find real restaurants near you</div>
+            <div style={{padding:"28px",borderRadius:"20px",background:S.bgDark,textAlign:"center",marginBottom:"20px"}}>
+              <div style={{fontSize:"44px",marginBottom:"10px"}}>📍</div>
+              <div style={{fontSize:"15px",color:"rgba(255,255,255,0.65)",lineHeight:1.6,fontFamily:S.f}}>Search any city, address, or zip code to find real restaurants near you</div>
             </div>
-            <h3 style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>Or browse all chains</h3>
+            <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}>
+              <div style={{height:"1px",flex:1,background:S.brd}} />
+              <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontFamily:S.mono,fontWeight:600}}>All chains</span>
+              <div style={{height:"1px",flex:1,background:S.brd}} />
+            </div>
             {[...chains].sort((a,b)=>chainScore(b).pct-chainScore(a).pct).map(ch=>{
-              const {safe,danger,pct}=chainScore(ch);const color=pct>=70?S.g:pct>=40?S.y:S.r;
-              return(<button key={ch.id} onClick={()=>{setViewChain(ch);nav("chain",true);}} style={{padding:"12px 14px",marginBottom:"4px",borderRadius:"12px",background:S.card,border:`1px solid ${color}22`,cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"10px"}}>
-                <span style={{fontSize:"24px"}}>{ch.icon}</span><div style={{flex:1}}><div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{ch.name}</div><div style={{fontSize:"10px",color:S.mut}}>{safe} safe · {danger} allergens</div></div>
-                <div style={{fontSize:"16px",fontWeight:800,fontFamily:S.sf,color}}>{pct}%</div>
+              const {safe,danger,pct}=chainScore(ch);
+              const color=pct>=70?S.g:pct>=40?S.y:S.r;
+              const bg=pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
+              const brd=pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
+              return(<button key={ch.id} onClick={()=>{setViewChain(ch);nav("chain",true);}} style={{padding:"13px 16px",marginBottom:"5px",borderRadius:"14px",background:S.card,border:`1px solid ${S.brd}`,cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"10px",boxShadow:S.shadowSm}}>
+                <span style={{fontSize:"26px"}}>{ch.icon}</span>
+                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:"14px",color:S.text}}>{ch.name}</div><div style={{fontSize:"11px",color:S.mut,fontFamily:S.mono}}>{safe} safe · {danger} allergens</div></div>
+                <div style={{padding:"4px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"8px"}}><div style={{fontSize:"16px",fontWeight:400,fontFamily:S.sf,color,textAlign:"center"}}>{pct}%</div></div>
               </button>);
             })}
           </>}
         </div>}
 
         {/* ═══ CHAIN DETAIL ═══ */}
-        {pg==="chain"&&viewChain&&<div>
-          <button onClick={()=>nav("dining")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 12px"}}>← Back</button>
-          <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px"}}>
-            <span style={{fontSize:"36px"}}>{viewChain.icon}</span>
+        {pg==="chain"&&viewChain&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <button onClick={()=>nav("dining")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:700}}>← Back</button>
+          <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"18px"}}>
+            <div style={{width:"56px",height:"56px",borderRadius:"16px",background:S.bg,border:`1px solid ${S.brd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",boxShadow:S.shadowSm,flexShrink:0}}>{viewChain.icon}</div>
             <div>
-              <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:0}}>{viewChain.name}</h1>
-              <div style={{fontSize:"12px",color:S.mut}}>{viewChain.type} · {viewChain.menu.length} items</div>
-              {viewChain.address&&<div style={{fontSize:"11px",color:S.p,marginTop:"2px"}}>📍 {viewChain.address} · {viewChain.distance} mi</div>}
+              <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:0,letterSpacing:"-0.3px"}}>{viewChain.name}</h1>
+              <div style={{fontSize:"12px",color:S.mut,marginTop:"2px",fontFamily:S.mono}}>{viewChain.type} · {viewChain.menu.length} items</div>
+              {viewChain.address&&<div style={{fontSize:"11px",color:S.p,marginTop:"4px",fontWeight:600}}>📍 {viewChain.address} · {viewChain.distance} mi</div>}
             </div>
           </div>
           {viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length>0&&<>
-            <h3 style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"8px"}}>✓ Safe for You ({viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length})</h3>
+            <h3 style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"9px",fontFamily:S.mono,fontWeight:700}}>✓ Safe for You ({viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length})</h3>
             {viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).map((m,i)=>(
-              <div key={i} style={{padding:"12px 14px",marginBottom:"4px",borderRadius:"10px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.15)",display:"flex",alignItems:"center",gap:"10px"}}>
-                <span style={{color:S.g,fontSize:"14px"}}>✓</span>
-                <div><div style={{fontWeight:600,fontSize:"13px",color:"#fff"}}>{m.name}</div>{m.a.length>0?<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>Contains: {m.a.map(a=>(AL.find(function(x){return x.id===a})||{}).label).join(", ")}</div>:<div style={{fontSize:"10px",color:"rgba(34,197,94,0.6)",marginTop:"1px"}}>No common allergens</div>}</div>
+              <div key={i} style={{padding:"12px 14px",marginBottom:"5px",borderRadius:"12px",background:S.gbg,border:`1px solid ${S.gbrd}`,display:"flex",alignItems:"center",gap:"10px"}}>
+                <span style={{color:S.g,fontSize:"15px",fontWeight:700}}>✓</span>
+                <div><div style={{fontWeight:600,fontSize:"13px",color:S.text}}>{m.name}</div>{m.a.length>0?<div style={{fontSize:"10px",color:S.mut,marginTop:"2px",fontFamily:S.mono}}>Contains: {m.a.map(a=>(AL.find(function(x){return x.id===a})||{}).label).join(", ")}</div>:<div style={{fontSize:"10px",color:S.g,marginTop:"2px",fontFamily:S.mono}}>No common allergens</div>}</div>
               </div>
             ))}
           </>}
           {viewChain.menu.filter(m=>m.a.some(a=>prof.allergens.includes(a))).length>0&&<>
-            <h3 style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",margin:"16px 0 8px"}}>✕ Contains Your Allergens ({viewChain.menu.filter(m=>m.a.some(a=>prof.allergens.includes(a))).length})</h3>
+            <h3 style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",margin:"18px 0 9px",fontFamily:S.mono,fontWeight:700}}>✕ Contains Your Allergens ({viewChain.menu.filter(m=>m.a.some(a=>prof.allergens.includes(a))).length})</h3>
             {viewChain.menu.filter(m=>m.a.some(a=>prof.allergens.includes(a))).map((m,i)=>{
               const hits=m.a.filter(a=>prof.allergens.includes(a));
-              return(<div key={i} style={{padding:"12px 14px",marginBottom:"4px",borderRadius:"10px",background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.12)",display:"flex",alignItems:"center",gap:"10px"}}>
-                <span style={{color:S.r,fontSize:"14px"}}>✕</span>
-                <div><div style={{fontWeight:600,fontSize:"13px",color:"rgba(255,255,255,0.6)"}}>{m.name}</div>
-                <div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{hits.map(a=><span key={a} style={{marginRight:"6px",padding:"1px 5px",background:"rgba(239,68,68,0.15)",borderRadius:"3px",color:"#fca5a5",fontSize:"9px"}}>{(AL.find(function(x){return x.id===a})||{}).icon} {(AL.find(function(x){return x.id===a})||{}).label}</span>)}</div></div>
+              return(<div key={i} style={{padding:"12px 14px",marginBottom:"5px",borderRadius:"12px",background:S.rbg,border:`1px solid ${S.rbrd}`,display:"flex",alignItems:"center",gap:"10px"}}>
+                <span style={{color:S.r,fontSize:"15px",fontWeight:700}}>✕</span>
+                <div><div style={{fontWeight:600,fontSize:"13px",color:S.text2}}>{m.name}</div>
+                <div style={{fontSize:"10px",color:S.mut,marginTop:"2px"}}>{hits.map(a=><span key={a} style={{marginRight:"6px",padding:"2px 7px",background:S.rbg,borderRadius:"5px",color:S.r,fontSize:"10px",fontWeight:600,border:`1px solid ${S.rbrd}`}}>{(AL.find(function(x){return x.id===a})||{}).icon} {(AL.find(function(x){return x.id===a})||{}).label}</span>)}</div></div>
               </div>);
             })}
           </>}
         </div>}
 
         {/* ═══ PROFILE ═══ */}
-        {pg==="profile"&&<div>
-          <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 14px"}}>Your Profile</h1>
-          <div style={{padding:"20px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"14px"}}>
-              <div style={{width:"48px",height:"48px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:700,color:"#fff"}}>{prof.name.charAt(0).toUpperCase()}</div>
-              <div><div style={{fontWeight:700,fontSize:"18px",color:"#fff"}}>{prof.name}</div><div style={{fontSize:"11px",color:S.mut}}>@{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div></div>
-            </div>
+        {pg==="profile"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+          <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 16px",letterSpacing:"-0.3px"}}>Your Profile</h1>
 
-            {/* Allergens - editable */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
-              <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px"}}>Allergens</div>
+          {/* Profile card — inverted dark */}
+          <div style={{padding:"22px",borderRadius:"20px",background:S.bgDark,marginBottom:"14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"4px"}}>
+              <div style={{width:"50px",height:"50px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"21px",fontWeight:700,color:"#fff",boxShadow:S.shadowBlue,flexShrink:0}}>{prof.name.charAt(0).toUpperCase()}</div>
+              <div><div style={{fontWeight:700,fontSize:"18px",color:"#fff"}}>{prof.name}</div><div style={{fontSize:"12px",color:"rgba(255,255,255,0.45)",fontFamily:S.mono}}>@{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div></div>
+            </div>
+          </div>
+
+          {/* Allergens card */}
+          <div style={{padding:"20px",borderRadius:"18px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px",boxShadow:S.shadowSm}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
+              <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontFamily:S.mono,fontWeight:700}}>Allergens</div>
               {!editingAllergens?
-                <button onClick={()=>{setEditAllergens([...prof.allergens]);setEditCustomList([...(prof.customAllergens||[])]);setEditCustomInput("");setEditingAllergens(true);}} style={{background:"none",border:"none",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Edit</button>:
+                <button onClick={()=>{setEditAllergens([...prof.allergens]);setEditCustomList([...(prof.customAllergens||[])]);setEditCustomInput("");setEditingAllergens(true);}} style={{background:S.pbg,border:`1px solid ${S.pBrd}`,borderRadius:"8px",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,padding:"4px 12px"}}>Edit</button>:
                 <div style={{display:"flex",gap:"8px"}}>
-                  <button onClick={()=>setEditingAllergens(false)} style={{background:"none",border:"none",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f}}>Cancel</button>
-                  <button onClick={saveAllergenEdits} disabled={editAllergens.length===0} style={{background:"none",border:"none",color:editAllergens.length===0?S.mut:S.g,fontSize:"12px",cursor:editAllergens.length===0?"default":"pointer",fontFamily:S.f,fontWeight:600}}>Save{editAllergens.length===0?" (select 1+)":""}</button>
+                  <button onClick={()=>setEditingAllergens(false)} style={{background:"none",border:"none",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
+                  <button onClick={saveAllergenEdits} disabled={editAllergens.length===0} style={{background:editAllergens.length===0?"#F3F4F6":"linear-gradient(135deg,#16a34a,#15803d)",border:"none",borderRadius:"8px",color:editAllergens.length===0?S.mut2:"#fff",fontSize:"12px",cursor:editAllergens.length===0?"default":"pointer",fontFamily:S.f,fontWeight:700,padding:"4px 12px"}}>Save{editAllergens.length===0?" (1+ needed)":""}</button>
                 </div>
               }
             </div>
             {!editingAllergens?
-              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
-                {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 10px",background:S.pbg,border:"1px solid rgba(139,92,246,0.3)",borderRadius:"8px",fontSize:"11px",color:"#c4b5fd"}}>{a&&a.icon} {a&&a.label}</span>;})}
-                {(prof.customAllergens||[]).map((c,i)=><span key={"c"+i} style={{padding:"5px 10px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"8px",fontSize:"11px",color:"#fcd34d"}}>✦ {c}</span>)}
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 11px",background:S.pbg,border:`1px solid ${S.pBrd}`,borderRadius:"20px",fontSize:"12px",color:S.p,fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
+                {(prof.customAllergens||[]).map((c,i)=><span key={"c"+i} style={{padding:"5px 11px",background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"20px",fontSize:"12px",color:S.y,fontWeight:600}}>✦ {c}</span>)}
               </div>:
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"10px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",marginBottom:"12px"}}>
                   {AL.map(a=>{const sel=editAllergens.includes(a.id);return(
                     <button key={a.id} onClick={()=>setEditAllergens(p=>sel?p.filter(x=>x!==a.id):[...p,a.id])}
-                      style={{padding:"8px",background:sel?S.pbg:S.card,border:sel?"1.5px solid rgba(139,92,246,0.5)":`1.5px solid ${S.brd}`,borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:S.f,color:sel?"#c4b5fd":"rgba(255,255,255,0.4)",fontSize:"11px"}}>
-                      <span style={{fontSize:"16px"}}>{a.icon}</span>{a.label}{sel&&<span style={{marginLeft:"auto",color:S.p}}>✓</span>}
+                      style={{padding:"9px 10px",background:sel?S.pbg:S.bg,border:sel?`1.5px solid ${S.pBrd}`:`1.5px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:S.f,color:sel?S.p:S.mut,fontSize:"12px",fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                      <span style={{fontSize:"16px"}}>{a.icon}</span><span style={{flex:1,textAlign:"left"}}>{a.label}</span>{sel&&<span style={{color:S.p,fontWeight:700,fontSize:"12px"}}>✓</span>}
                     </button>
                   );})}
                 </div>
-                <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:"6px"}}>Custom allergens</div>
-                <div style={{display:"flex",gap:"6px",marginBottom:"6px"}}>
-                  <input value={editCustomInput} onChange={e=>setEditCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"7px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none"}} />
-                  <button onClick={()=>{if(editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} style={{padding:"7px 12px",background:S.pbg,border:`1px solid rgba(139,92,246,0.4)`,borderRadius:"8px",color:"#c4b5fd",fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Add</button>
+                <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,marginBottom:"8px",fontFamily:S.mono}}>Custom allergens</div>
+                <div style={{display:"flex",gap:"7px",marginBottom:"8px"}}>
+                  <input value={editCustomInput} onChange={e=>setEditCustomInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} placeholder="e.g. corn, MSG, latex..." style={{flex:1,padding:"9px 12px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.text,fontSize:"12px",fontFamily:S.f}} />
+                  <button onClick={()=>{if(editCustomInput.trim()){setEditCustomList(p=>[...p,editCustomInput.trim()]);setEditCustomInput("");}}} style={{padding:"9px 14px",background:S.pbg,border:`1.5px solid ${S.pBrd}`,borderRadius:"10px",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700}}>Add</button>
                 </div>
-                {editCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>{editCustomList.map((c,i)=><span key={i} style={{padding:"3px 8px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"20px",fontSize:"11px",color:"#fcd34d",display:"flex",alignItems:"center",gap:"4px"}}>{c}<button onClick={()=>setEditCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#f59e0b",cursor:"pointer",fontSize:"12px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
+                {editCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>{editCustomList.map((c,i)=><span key={i} style={{padding:"4px 10px",background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"20px",fontSize:"12px",color:S.y,display:"flex",alignItems:"center",gap:"5px",fontWeight:600}}>{c}<button onClick={()=>setEditCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:S.y,cursor:"pointer",fontSize:"13px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
               </div>
             }
           </div>
 
           {/* Stats */}
-          <div style={{padding:"20px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px"}}>
-            <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"10px"}}>Statistics</div>
+          <div style={{padding:"20px",borderRadius:"18px",background:S.card,border:`1px solid ${S.brd}`,marginBottom:"14px",boxShadow:S.shadowSm}}>
+            <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"12px",fontFamily:S.mono,fontWeight:700}}>Scan Statistics</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-              {[{l:"Total Scans",v:hist.length,c:"#fff"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g},{l:"Danger",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r},{l:"Caution",v:hist.filter(h=>liveResult(h).overall==="caution").length,c:S.y}].map(s=>(
-                <div key={s.l}><span style={{fontSize:"22px",fontWeight:800,fontFamily:S.sf,color:s.c}}>{s.v}</span><div style={{fontSize:"10px",color:S.mut}}>{s.l}</div></div>
+              {[{l:"Total Scans",v:hist.length,c:S.p,bg:S.pbg,brd:S.pBrd},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,bg:S.gbg,brd:S.gbrd},{l:"Danger",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,bg:S.rbg,brd:S.rbrd},{l:"Caution",v:hist.filter(h=>liveResult(h).overall==="caution").length,c:S.y,bg:S.ybg,brd:S.ybrd}].map(s=>(
+                <div key={s.l} style={{padding:"14px",borderRadius:"14px",background:s.bg,border:`1px solid ${s.brd}`}}>
+                  <span style={{fontSize:"26px",fontWeight:400,fontFamily:S.sf,color:s.c}}>{s.v}</span>
+                  <div style={{fontSize:"10px",color:s.c,opacity:0.8,marginTop:"3px",fontFamily:S.mono,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.l}</div>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Emergency Allergen Card */}
-          <div style={{padding:"20px",borderRadius:"16px",background:"linear-gradient(135deg, rgba(239,68,68,0.08), rgba(245,158,11,0.06))",border:"1px solid rgba(239,68,68,0.15)",marginBottom:"14px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-              <div style={{fontSize:"11px",color:S.r,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>🚨 Emergency Allergen Card</div>
-              <button onClick={()=>{setShowEmergencyEdit(!showEmergencyEdit);if(!showEmergencyEdit){setEmergencyContact(prof.emergencyContact||"");setEmergencyPhone(prof.emergencyPhone||"");}}} style={{background:"none",border:"none",color:S.p,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>{showEmergencyEdit?"Cancel":"Edit"}</button>
+          {/* Emergency Card */}
+          <div style={{padding:"22px",borderRadius:"18px",background:S.bgDark,marginBottom:"14px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
+                <span style={{fontSize:"16px"}}>🚨</span>
+                <div style={{fontSize:"11px",color:"rgba(239,68,68,0.9)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:S.mono}}>Emergency Card</div>
+              </div>
+              <button onClick={()=>{setShowEmergencyEdit(!showEmergencyEdit);if(!showEmergencyEdit){setEmergencyContact(prof.emergencyContact||"");setEmergencyPhone(prof.emergencyPhone||"");}}} style={{background:"rgba(0,82,255,0.15)",border:"1px solid rgba(0,82,255,0.25)",borderRadius:"8px",color:S.p2,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,padding:"4px 12px"}}>{showEmergencyEdit?"Cancel":"Edit"}</button>
             </div>
             {showEmergencyEdit?(
               <div>
-                <label style={{fontSize:"11px",color:S.mut,display:"block",marginBottom:"4px"}}>Emergency Contact Name</label>
+                <label style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",display:"block",marginBottom:"6px",fontFamily:S.mono}}>Emergency Contact Name</label>
                 <input value={emergencyContact} onChange={e=>setEmergencyContact(e.target.value)} placeholder="e.g. Mom, Dr. Smith"
-                  style={{width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"10px"}} />
-                <label style={{fontSize:"11px",color:S.mut,display:"block",marginBottom:"4px"}}>Emergency Phone</label>
+                  style={{width:"100%",padding:"11px 13px",background:"rgba(255,255,255,0.06)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
+                <label style={{fontSize:"11px",color:"rgba(255,255,255,0.5)",display:"block",marginBottom:"6px",fontFamily:S.mono}}>Emergency Phone</label>
                 <input value={emergencyPhone} onChange={e=>setEmergencyPhone(e.target.value)} placeholder="(555) 123-4567"
-                  style={{width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"10px"}} />
-                <button onClick={saveEmergency} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#22c55e,#16a34a)",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Save Emergency Info</button>
+                  style={{width:"100%",padding:"11px 13px",background:"rgba(255,255,255,0.06)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"12px"}} />
+                <button onClick={saveEmergency} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#16a34a,#15803d)",border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Save Emergency Info</button>
               </div>
             ):(
               <div>
-                <div style={{padding:"14px",borderRadius:"12px",background:"rgba(0,0,0,0.2)",marginBottom:"8px"}}>
-                  <div style={{fontSize:"16px",fontWeight:700,color:"#fff",marginBottom:"6px"}}>{prof.name}</div>
-                  <div style={{fontSize:"12px",color:"rgba(255,255,255,0.6)",marginBottom:"8px"}}>I have the following food allergies:</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"10px"}}>
-                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"4px 10px",background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",fontSize:"12px",color:"#fca5a5",fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
+                <div style={{padding:"16px",borderRadius:"14px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:"10px"}}>
+                  <div style={{fontSize:"17px",fontWeight:700,color:"#fff",marginBottom:"8px"}}>{prof.name}</div>
+                  <div style={{fontSize:"12px",color:"rgba(255,255,255,0.5)",marginBottom:"10px"}}>I have the following food allergies:</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"12px"}}>
+                    {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 11px",background:"rgba(220,38,38,0.12)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:"20px",fontSize:"12px",color:"#f87171",fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
                   </div>
                   {(prof.emergencyContact||prof.emergencyPhone)&&(
-                    <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",paddingTop:"8px",marginTop:"4px"}}>
-                      <div style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"4px"}}>Emergency Contact</div>
-                      {prof.emergencyContact&&<div style={{fontSize:"13px",color:"#fff",fontWeight:600}}>{prof.emergencyContact}</div>}
-                      {prof.emergencyPhone&&<div style={{fontSize:"13px",color:S.p}}>{prof.emergencyPhone}</div>}
+                    <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",paddingTop:"10px",marginTop:"4px"}}>
+                      <div style={{fontSize:"10px",color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:"5px",fontFamily:S.mono}}>Emergency Contact</div>
+                      {prof.emergencyContact&&<div style={{fontSize:"14px",color:"#fff",fontWeight:600}}>{prof.emergencyContact}</div>}
+                      {prof.emergencyPhone&&<div style={{fontSize:"13px",color:S.p2,fontFamily:S.mono}}>{prof.emergencyPhone}</div>}
                     </div>
                   )}
                   {!prof.emergencyContact&&!prof.emergencyPhone&&(
-                    <div style={{fontSize:"11px",color:S.mut,fontStyle:"italic"}}>Tap Edit to add an emergency contact</div>
+                    <div style={{fontSize:"11px",color:"rgba(255,255,255,0.35)",fontStyle:"italic"}}>Tap Edit to add an emergency contact</div>
                   )}
                 </div>
-                <div style={{fontSize:"10px",color:S.mut,textAlign:"center"}}>Show this card to restaurant staff or anyone preparing your food</div>
+                <div style={{fontSize:"10px",color:"rgba(255,255,255,0.35)",textAlign:"center",fontFamily:S.mono}}>Show this card to restaurant staff or anyone preparing your food</div>
               </div>
             )}
           </div>
 
           {/* Actions */}
-          <button onClick={doLogout} style={{width:"100%",padding:"13px",marginBottom:"8px",background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:"12px",color:S.p,fontSize:"14px",fontWeight:600,cursor:"pointer",fontFamily:S.f}}>
+          <button onClick={doLogout} style={{width:"100%",padding:"14px",marginBottom:"8px",background:S.pbg,border:`1.5px solid ${S.pBrd}`,borderRadius:"14px",color:S.p,fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
             Log Out
           </button>
           {!confirmDelete?
-            <button onClick={()=>setConfirmDelete(true)} style={{width:"100%",padding:"13px",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:"12px",color:"#fca5a5",fontSize:"13px",fontWeight:600,cursor:"pointer",fontFamily:S.f}}>
+            <button onClick={()=>setConfirmDelete(true)} style={{width:"100%",padding:"14px",background:S.rbg,border:`1.5px solid ${S.rbrd}`,borderRadius:"14px",color:S.r,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
               Delete Account
             </button>:
-            <div style={{padding:"16px",borderRadius:"12px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)"}}>
-              <div style={{fontSize:"13px",color:"#fca5a5",marginBottom:"10px"}}>Are you sure? This permanently deletes your account, allergens, and scan history.</div>
+            <div style={{padding:"18px",borderRadius:"14px",background:S.rbg,border:`1.5px solid ${S.rbrd}`}}>
+              <div style={{fontSize:"13px",color:S.r,marginBottom:"12px",fontWeight:500}}>Are you sure? This permanently deletes your account, allergens, and scan history.</div>
               <div style={{display:"flex",gap:"8px"}}>
-                <button onClick={()=>setConfirmDelete(false)} style={{flex:1,padding:"10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f}}>Cancel</button>
-                <button onClick={doDeleteAccount} style={{flex:1,padding:"10px",background:"rgba(239,68,68,0.2)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"8px",color:"#fca5a5",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Yes, Delete</button>
+                <button onClick={()=>setConfirmDelete(false)} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
+                <button onClick={doDeleteAccount} style={{flex:1,padding:"11px",background:S.r,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Yes, Delete</button>
               </div>
             </div>
           }
         </div>}
       </main>
 
-      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(8,11,20,0.97)",backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",borderTop:`1px solid rgba(255,255,255,0.07)`,paddingBottom:"env(safe-area-inset-bottom,8px)",display:"flex",zIndex:100}}>
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(250,250,250,0.97)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${S.brd}`,paddingBottom:"env(safe-area-inset-bottom,8px)",display:"flex",zIndex:100,boxShadow:"0 -4px 24px rgba(0,0,0,0.06)"}}>
         <NavBtn id="home" icon="🏠" label="Home" />
         <NavBtn id="scanner" icon="🔬" label="Scan" />
         <NavBtn id="nutrition" icon="🍎" label="Nutrition" />
