@@ -52,6 +52,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 
   <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -181,9 +182,17 @@ function App() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrBad, setOcrBad] = useState(false);
   const [ocrError, setOcrError] = useState("");
+  const [barcodeScanning, setBarcodeScanning] = useState(false);
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeError, setBarcodeError] = useState("");
+  const barcodeReaderRef = useRef(null);
   const [photoLabel, setPhotoLabel] = useState("");
   const [scannerTab, setScannerTab] = useState("search");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (pg !== "scanner") stopBarcodeScanner();
+  }, [pg]);
 
   // Food search state (Edamam via Cloudflare Worker)
   const [foodQuery, setFoodQuery] = useState("");
@@ -571,6 +580,74 @@ function App() {
     setLocSet(match.name); setLocInput(match.name);
     setNearbyResults(generateNearby(match.name));
     setLocLoading(false);
+  };
+
+  const startBarcodeScanner = async () => {
+    setBarcodeScanning(true);
+    setBarcodeError("");
+    // Wait for video element to mount
+    await new Promise(r => setTimeout(r, 100));
+    const video = document.getElementById("barcode-video");
+    if (!video) return;
+    try {
+      const hints = new Map();
+      const formats = [
+        window.ZXing.BarcodeFormat.EAN_13,
+        window.ZXing.BarcodeFormat.EAN_8,
+        window.ZXing.BarcodeFormat.UPC_A,
+        window.ZXing.BarcodeFormat.UPC_E,
+        window.ZXing.BarcodeFormat.CODE_128,
+        window.ZXing.BarcodeFormat.CODE_39,
+        window.ZXing.BarcodeFormat.QR_CODE,
+      ];
+      hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+      const reader = new window.ZXing.BrowserMultiFormatReader(hints);
+      barcodeReaderRef.current = reader;
+      await reader.decodeFromVideoDevice(null, "barcode-video", async (result, err) => {
+        if (result) {
+          stopBarcodeScanner();
+          await lookupBarcode(result.getText());
+        }
+      });
+    } catch(e) {
+      setBarcodeError("Camera access denied or not available.");
+      setBarcodeScanning(false);
+    }
+  };
+
+  const stopBarcodeScanner = () => {
+    if (barcodeReaderRef.current) {
+      barcodeReaderRef.current.reset();
+      barcodeReaderRef.current = null;
+    }
+    setBarcodeScanning(false);
+  };
+
+  const lookupBarcode = async (barcode) => {
+    setBarcodeLoading(true);
+    setBarcodeError("");
+    try {
+      const resp = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await resp.json();
+      if (data.status !== 1 || !data.product) {
+        setBarcodeError("Product not found in database. Try searching by name instead.");
+        setBarcodeLoading(false);
+        return;
+      }
+      const product = data.product;
+      const name = product.product_name || product.brands || "Unknown Product";
+      const ingredients = product.ingredients_text;
+      if (!ingredients) {
+        setBarcodeError("Product found but no ingredient list available. Try searching by name.");
+        setBarcodeLoading(false);
+        return;
+      }
+      setBarcodeLoading(false);
+      doScan(ingredients, name);
+    } catch(e) {
+      setBarcodeError("Lookup failed. Check your connection.");
+      setBarcodeLoading(false);
+    }
   };
 
   // Photo upload handler — uses Claude Vision via Cloudflare Worker
@@ -996,7 +1073,7 @@ function App() {
 
           {/* Tab bar */}
           <div style={{display:"flex",gap:"4px",marginBottom:"16px",background:"rgba(255,255,255,0.04)",borderRadius:"12px",padding:"4px"}}>
-            {[{id:"photo",icon:"📷",label:"Photo"},{id:"search",icon:"🔍",label:"Search"},{id:"manual",icon:"✏️",label:"Manual"}].map(t=>(
+            {[{id:"photo",icon:"📷",label:"Barcode"},{id:"search",icon:"🔍",label:"Search"},{id:"manual",icon:"✏️",label:"Manual"}].map(t=>(
               <button key={t.id} onClick={()=>setScannerTab(t.id)}
                 style={{flex:1,padding:"9px 0",border:"none",borderRadius:"9px",fontFamily:S.f,fontSize:"13px",fontWeight:600,cursor:"pointer",transition:"all 0.15s",
                   background:scannerTab===t.id?"linear-gradient(135deg,#7c3aed,#6d28d9)":"transparent",
@@ -1006,44 +1083,32 @@ function App() {
             ))}
           </div>
 
-          {/* Photo tab */}
+          {/* Barcode tab */}
           {scannerTab==="photo"&&<div>
             {foodNoIngredients&&<div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
               <span style={{fontSize:"18px",flexShrink:0}}>🔍</span>
               <div>
                 <div style={{fontSize:"13px",color:"#fcd34d",fontWeight:600,marginBottom:"2px"}}>No ingredient list found for "{foodNoIngredients}"</div>
-                <div style={{fontSize:"12px",color:S.mut}}>Scan the product's physical label below for a full allergen check.</div>
+                <div style={{fontSize:"12px",color:S.mut}}>Scan the product's barcode below for a full allergen check.</div>
               </div>
               <button onClick={()=>setFoodNoIngredients("")} style={{marginLeft:"auto",background:"none",border:"none",color:S.mut,fontSize:"16px",cursor:"pointer",padding:"0",flexShrink:0}}>×</button>
             </div>}
-            {!photoPreview ? (
-              <label style={{display:"block",padding:"28px 16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer",marginBottom:"14px"}}>
-                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{display:"none"}} />
-                <div style={{fontSize:"36px",marginBottom:"8px"}}>📷</div>
-                <div style={{fontSize:"14px",color:"rgba(255,255,255,0.6)",fontWeight:600}}>Take a photo or upload</div>
-                <div style={{fontSize:"12px",color:S.mut,marginTop:"4px"}}>Point at the ingredient label</div>
-              </label>
+            {!barcodeScanning ? (
+              <div style={{padding:"28px 16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",marginBottom:"14px"}}>
+                <div style={{fontSize:"36px",marginBottom:"8px"}}>📦</div>
+                <div style={{fontSize:"14px",color:"rgba(255,255,255,0.8)",fontWeight:600,marginBottom:"4px"}}>Scan a Barcode</div>
+                <div style={{fontSize:"12px",color:S.mut,marginBottom:"16px"}}>Point your camera at the barcode on the product</div>
+                <button onClick={startBarcodeScanner} style={{padding:"10px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Start Scanner</button>
+              </div>
             ) : (
-              <div style={{padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",marginBottom:"14px"}}>
-                <img src={photoPreview} alt="Label" style={{maxWidth:"100%",maxHeight:"180px",borderRadius:"10px",display:"block",margin:"0 auto 10px"}} />
-                {ocrLoading && <div style={{textAlign:"center",padding:"8px",fontSize:"13px",color:S.mut}}>⏳ Reading label...</div>}
-                {!ocrLoading && ocrBad && (
-                  <div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"10px",padding:"12px",textAlign:"center",marginBottom:"10px"}}>
-                    <div style={{fontSize:"24px",marginBottom:"4px"}}>📋</div>
-                    <div style={{fontSize:"13px",color:"#fca5a5",fontWeight:600,marginBottom:"4px"}}>Couldn't find an ingredients list</div>
-                    <div style={{fontSize:"11px",color:S.mut,marginBottom:"10px"}}>Make sure the photo shows the ingredients panel on the packaging — not the front of the product.</div>
-                    {ocrError&&<div style={{fontSize:"10px",color:"rgba(239,68,68,0.6)",marginTop:"4px",fontFamily:"monospace"}}>{ocrError}</div>}
-                    <label style={{display:"inline-block",padding:"8px 18px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
-                      <input type="file" accept="image/*" capture="environment" onChange={e=>{setPhotoPreview(null);setOcrBad(false);setTxt("");setPhotoLabel("");handlePhotoUpload(e);}} style={{display:"none"}} />
-                      Retake Photo
-                    </label>
-                  </div>
-                )}
-                {!ocrLoading && !ocrBad && <div style={{fontSize:"11px",color:S.g,textAlign:"center",marginBottom:"8px"}}>✓ Ingredients extracted — review in Manual tab or scan below</div>}
-                <input value={photoLabel} onChange={e=>setPhotoLabel(e.target.value)} placeholder="Product name..."
-                  style={{width:"100%",padding:"8px 10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:"#fff",fontSize:"12px",fontFamily:S.f,outline:"none",boxSizing:"border-box",marginBottom:"8px"}} />
-                <button onClick={()=>{setPhotoPreview(null);setOcrLoading(false);setOcrBad(false);setPhotoLabel("");setTxt("");}}
-                  style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"8px",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,padding:"6px 14px"}}>Remove photo</button>
+              <div style={{marginBottom:"14px"}}>
+                <div style={{position:"relative",borderRadius:"14px",overflow:"hidden",background:"#000",marginBottom:"10px"}}>
+                  <video id="barcode-video" style={{width:"100%",display:"block",maxHeight:"220px",objectFit:"cover"}} />
+                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"200px",height:"80px",border:"2px solid #22c55e",borderRadius:"8px",pointerEvents:"none"}} />
+                  {barcodeLoading&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:"#fff"}}>⏳ Looking up product…</div>}
+                </div>
+                {barcodeError&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"10px",padding:"10px 12px",fontSize:"12px",color:"#fca5a5",marginBottom:"8px"}}>{barcodeError}</div>}
+                <button onClick={stopBarcodeScanner} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:`1px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f}}>Stop Scanner</button>
               </div>
             )}
           </div>}
