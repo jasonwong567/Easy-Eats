@@ -817,7 +817,7 @@ function App() {
     setNutLoading(false);
   };
 
-  // Food search via Cloudflare Worker → Edamam Food Database
+  // Food search via Cloudflare Worker → Open Food Facts
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
@@ -826,28 +826,23 @@ function App() {
     setFoodResults([]);
     setTxt("");
     try {
-      const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
+      const resp = await fetch(`${WORKER_URL}/api/food-search?q=${encodeURIComponent(q)}`);
       const data = await resp.json();
       if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
-      const hits = (data.hints || [])
-        .map(h => ({
-          label: h.food.label,
-          brand: h.food.brand || null,
-          ingredients: h.food.ingredients || null,
+      const hits = (data.products || [])
+        .map(p => ({
+          label: p.product_name || "",
+          brand: p.brands || null,
+          ingredients: p.ingredients_text || null,
         }))
-        .filter(h => h.label);
+        .filter(h => h.label.trim());
       if (hits.length === 0) {
-        // Retry with just the first word if multi-word query
-        const words = q.split(" ");
-        if (words.length > 1 && !overrideQuery) {
-          return searchFood(words[0]);
-        }
         setFoodError("No results found. Try a different search term.");
       } else {
         setFoodResults(hits.slice(0, 6));
       }
     } catch(e) {
-      setFoodError(e.message.includes("429") ? "Search limit reached — please wait a moment and try again." : "Search failed. Check your connection and try again.");
+      setFoodError("Search failed. Check your connection and try again.");
     }
     setFoodLoading(false);
   };
