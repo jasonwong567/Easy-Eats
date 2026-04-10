@@ -1477,9 +1477,9 @@ function App() {
             })}
           </>}
           {!locSet&&!locLoading&&<>
-            <div style={{padding:"28px",borderRadius:"20px",background:S.bgDark,textAlign:"center",marginBottom:"20px"}}>
+            <div style={{padding:"32px 24px",borderRadius:"20px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",marginBottom:"20px",boxShadow:S.shadowSm}}>
               <div style={{fontSize:"44px",marginBottom:"10px"}}>📍</div>
-              <div style={{fontSize:"15px",color:"rgba(255,255,255,0.65)",lineHeight:1.6,fontFamily:S.f}}>Search any city, address, or zip code to find real restaurants near you</div>
+              <div style={{fontSize:"15px",color:S.mut,lineHeight:1.6}}>Search any city, address, or zip code to find real restaurants near you</div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}>
               <div style={{height:"1px",flex:1,background:S.brd}} />
