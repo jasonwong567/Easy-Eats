@@ -50,7 +50,6 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -583,7 +582,7 @@ function App() {
       const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
       const overpassData = await overpassRes.json();
 
-      if (!(overpassData.elements&&overpassData.elements.length)) return null;
+      if (!(overpassData.elements&&overpassData.elements.length)) return { results: [], displayName, center: [lat, lon] };
 
       // Step 3: Match OSM results to our chain database
       const results = [];
@@ -671,83 +670,38 @@ function App() {
     setLocLoading(false);
   };
 
-  // Photo upload handler with Tesseract.js OCR
+  // Photo upload handler — uses Claude Vision via Cloudflare Worker
   const handlePhotoUpload = async (e) => {
-    const file = (e.target.files&&e.target.files[0]);
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target.result;
       setPhotoPreview(dataUrl);
       setOcrLoading(true);
+      setOcrBad(false);
+      setTxt("");
+      setPhotoLabel("");
       try {
-        const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng');
-        const cleaned = text.replace(/[^\x20-\x7E\n]/g, '');
-
-        // Extract product name from text before INGREDIENTS line
-        let detectedLabel = "";
-        const ingIdx = cleaned.search(/ingredient[s]?\s*[:\-]/i);
-        if (ingIdx > 0) {
-          const beforeLines = cleaned.slice(0, ingIdx).trim().split('\n')
-            .map(l => l.trim())
-            .filter(l => l.length > 3 && l.length < 60 && !/^\d/.test(l) && /[a-zA-Z]{3,}/.test(l) && !/net\s*wt|oz|lb|gram|serving|fl\s*oz/i.test(l));
-          // Pick the longest line as the most likely product name
-          if (beforeLines.length > 0) {
-            detectedLabel = beforeLines.reduce((a, b) => b.length > a.length ? b : a, "");
-          }
-        }
-
-        // Extract just the ingredients section, stopping at label footer/nutrition info
-        const match = cleaned.match(/ingredient[s]?\s*[:\-]?\s*([\s\S]+?)(?=\n\s*\n|\bnutrition\b|\bserving\b|\bcalories\b|\btotal fat\b|\bdistributed\b|\bmanufactured\b|\bproduced\b|\bpacked\b|\bimported\b|\bcontains\b|\ballergen\b|$)/i);
-        const raw = match ? match[1] : cleaned;
-
-        // Remove lines that are mostly numbers/symbols (nutrition label rows)
-        const filtered = raw.split('\n')
-          .filter(line => {
-            const letters = (line.match(/[a-zA-Z]/g) || []).length;
-            const total = line.trim().length;
-            return total === 0 || letters / total > 0.4;
-          })
-          .join(' ');
-
-        // Remove phone numbers, URLs, units, stray symbols, and short OCR artifacts
-        const validShort = new Set(['of','or','in','a','an','and','as','at','by','do','go','is','it','no','on','to','up','vs','with']);
-        const extracted = filtered
-          .replace(/[|\\^~`@#$*_]/g, '')
-          .replace(/1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g, '')
-          .replace(/\b\d[\d\s\-().]{7,}\d\b/g, '')
-          .replace(/(?:https?:\/\/|www\.)\S+/gi, '')
-          .replace(/\b[\w.-]+\.(?:com|net|org|us|ca|co)\b/gi, '')
-          .replace(/\s*\d+\s*(?:mg|g|mcg|iu|%dv)\b/gi, '')
-          .replace(/\s{2,}/g, ' ')
-          .split(/\b/)
-          .filter(token => {
-            const t = token.trim();
-            if (!t) return true;
-            if (/^[^a-zA-Z]+$/.test(t)) return true;
-            if (t.length <= 2 && !validShort.has(t.toLowerCase())) return false;
-            return true;
-          })
-          .join('')
-          .replace(/\s{2,}/g, ' ')
-          .trim();
-
-        if (extracted) {
-          setTxt(extracted);
-          const realWords = extracted.split(/\s+/).filter(w => /^[a-zA-Z]{4,}$/.test(w));
-          const commaCount = (extracted.match(/,/g) || []).length;
-          const commonIngredients = /\b(water|sugar|salt|flour|oil|milk|corn|soy|wheat|rice|starch|syrup|butter|cream|extract|vinegar|acid|natural|flavor|enriched|sodium|potassium|calcium|iron|vitamin)\b/i.test(extracted);
-          const isGood = realWords.length >= 8 && commaCount >= 3 && commonIngredients;
-          setOcrBad(!isGood);
-        } else {
+        const base64 = dataUrl.split(",")[1];
+        const mediaType = file.type || "image/jpeg";
+        const resp = await fetch(`${WORKER_URL}/api/ocr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64, mediaType }),
+        });
+        const data = await resp.json();
+        if (data.error || !data.ingredients) {
           setOcrBad(true);
+        } else {
+          setTxt(data.ingredients);
+          setPhotoLabel(data.name || "");
+          setOcrBad(false);
         }
-        setPhotoLabel(detectedLabel || "Scanned Label");
       } catch(err) {
-        setPhotoLabel("Scanned Label");
         setOcrBad(true);
-        setOcrLoading(false);
       }
+      setOcrLoading(false);
     };
     reader.readAsDataURL(file);
   };
