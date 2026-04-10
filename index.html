@@ -280,6 +280,7 @@ function App() {
   const [foodResults, setFoodResults] = useState([]);
   const [foodLoading, setFoodLoading] = useState(false);
   const [foodError, setFoodError] = useState("");
+  const [foodNoIngredients, setFoodNoIngredients] = useState("");
 
   // Nutrition tab state
   const [nutQuery, setNutQuery] = useState("");
@@ -810,7 +811,9 @@ function App() {
       })).filter(h => h.label).slice(0, 8);
       if (hits.length === 0) setNutError("No results found. Try a different search term.");
       else setNutResults(hits);
-    } catch(e) { setNutError(`Error: ${e.message}`); }
+    } catch(e) {
+      setNutError(e.message.includes("429") ? "Search limit reached — please wait a moment and try again." : "Search failed. Check your connection and try again.");
+    }
     setNutLoading(false);
   };
 
@@ -844,7 +847,7 @@ function App() {
         setFoodResults(hits.slice(0, 6));
       }
     } catch(e) {
-      setFoodError(`Error: ${e.message}`);
+      setFoodError(e.message.includes("429") ? "Search limit reached — please wait a moment and try again." : "Search failed. Check your connection and try again.");
     }
     setFoodLoading(false);
   };
@@ -853,9 +856,15 @@ function App() {
     setFoodResults([]);
     setFoodQuery(item.label);
     const name = item.brand ? `${item.label} (${item.brand})` : item.label;
-    // Use ingredient list if available, otherwise use the food name itself
-    // (whole foods like "egg", "milk", "peanuts" are their own allergen)
-    doScan(item.ingredients || item.label, name);
+    if (item.ingredients) {
+      doScan(item.ingredients, name);
+    } else {
+      // No ingredient list in database — prompt user to scan the physical label
+      setPhotoLabel(name);
+      setPhotoPreview(null); setOcrBad(false); setTxt("");
+      setScannerTab("photo");
+      setFoodNoIngredients(name);
+    }
   };
 
   // Emergency card save
@@ -1074,6 +1083,14 @@ function App() {
 
           {/* Photo tab */}
           {scannerTab==="photo"&&<div>
+            {foodNoIngredients&&<div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
+              <span style={{fontSize:"18px",flexShrink:0}}>🔍</span>
+              <div>
+                <div style={{fontSize:"13px",color:"#fcd34d",fontWeight:600,marginBottom:"2px"}}>No ingredient list found for "{foodNoIngredients}"</div>
+                <div style={{fontSize:"12px",color:S.mut}}>Scan the product's physical label below for a full allergen check.</div>
+              </div>
+              <button onClick={()=>setFoodNoIngredients("")} style={{marginLeft:"auto",background:"none",border:"none",color:S.mut,fontSize:"16px",cursor:"pointer",padding:"0",flexShrink:0}}>×</button>
+            </div>}
             {!photoPreview ? (
               <label style={{display:"block",padding:"28px 16px",background:S.card,border:`1.5px dashed ${S.brd}`,borderRadius:"14px",textAlign:"center",cursor:"pointer",marginBottom:"14px"}}>
                 <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{display:"none"}} />
