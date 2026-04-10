@@ -1001,7 +1001,7 @@ function App() {
         {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const resultChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
             <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0}}>← Back</button>
-            {viewHist.ingredients&&<button onClick={()=>{nav("scanner",true);setScannerTab("manual");setTxt(viewHist.ingredients);setPhotoLabel(viewHist.label);}} style={{padding:"7px 14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"9px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>↺ Rescan</button>}
+            <button onClick={()=>{nav("scanner",true);setScannerTab("manual");setTxt(viewHist.ingredients||"");setPhotoLabel(viewHist.label);}} style={{padding:"7px 14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"9px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>↺ Rescan</button>
           </div>
           <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>{viewHist.label}</h2>
           <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>{new Date(viewHist.date).toLocaleString()}</div>
@@ -1205,19 +1205,20 @@ function App() {
               <div style={{padding:"16px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",marginBottom:"12px"}}>
                 <div style={{fontSize:"18px",fontWeight:800,color:"#fff",fontFamily:S.sf,marginBottom:"2px"}}>{nutSelected.label}</div>
                 {nutSelected.brand&&<div style={{fontSize:"11px",color:S.mut,marginBottom:"12px"}}>{nutSelected.brand}</div>}
-                {/* Allergen status */}
-                {nutSelected.ingredients ? (()=>{
-                  const scan = runScan(nutSelected.ingredients, prof.allergens);
+                {/* Allergen status — use ingredients if available, fall back to food name */}
+                {(()=>{
+                  const scanText = nutSelected.ingredients || nutSelected.label;
+                  const scan = runScan(scanText, prof.allergens);
                   const color = scan.overall==="safe"?S.g:scan.overall==="caution"?S.y:S.r;
                   const icon = scan.overall==="safe"?"✅":scan.overall==="caution"?"⚠️":"🚫";
-                  const label = scan.overall==="safe"?"Safe for you":scan.overall==="caution"?"Use caution":"Contains your allergens";
+                  const lbl = scan.overall==="safe"?"Safe for you":scan.overall==="caution"?"Use caution":"Contains your allergens";
                   return(
                     <div style={{padding:"12px",borderRadius:"10px",background:`${color}11`,border:`1px solid ${color}33`,marginBottom:"12px",display:"flex",alignItems:"center",gap:"10px"}}>
                       <span style={{fontSize:"22px"}}>{icon}</span>
-                      <div><div style={{fontWeight:700,fontSize:"13px",color}}>{label}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{scan.summary}</div></div>
+                      <div><div style={{fontWeight:700,fontSize:"13px",color}}>{lbl}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px"}}>{scan.summary}{!nutSelected.ingredients&&<span style={{marginLeft:"4px",opacity:0.6}}>(based on food name)</span>}</div></div>
                     </div>
                   );
-                })() : <div style={{padding:"10px 12px",borderRadius:"8px",background:"rgba(255,255,255,0.04)",border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,marginBottom:"12px"}}>No ingredient list available for allergen check.</div>}
+                })()}
                 {/* Nutrients */}
                 {nutDetailLoading&&<div style={{textAlign:"center",padding:"16px",fontSize:"13px",color:S.mut}}>⏳ Loading full nutrition data…</div>}
                 {!nutDetailLoading&&(()=>{
@@ -1266,10 +1267,10 @@ function App() {
                   );
                 })()}
               </div>
-              {nutSelected.ingredients&&<button onClick={()=>{doScan(nutSelected.ingredients, nutSelected.label);}}
+              <button onClick={()=>{doScan(nutSelected.ingredients||nutSelected.label, nutSelected.label);}}
                 style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
                 🔬 Full Allergen Scan
-              </button>}
+              </button>
             </div>
           ) : nutResults.length>0 ? (
             <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
@@ -1286,7 +1287,7 @@ function App() {
                       <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
                       <div style={{fontSize:"10px",color:S.mut,marginTop:"2px"}}>{item.brand||item.category||"Food item"}{cal&&<span style={{marginLeft:"8px",color:"#f59e0b"}}>{cal}</span>}</div>
                     </div>
-                    {scanResult&&<span style={{fontSize:"14px"}}>{scanResult.overall==="safe"?"✅":scanResult.overall==="caution"?"⚠️":"🚫"}</span>}
+                    {(()=>{const sr=runScan(item.ingredients||item.label,prof.allergens);return <span style={{fontSize:"14px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>})()}
                     <span style={{fontSize:"11px",color:S.mut}}>→</span>
                   </button>
                 );
