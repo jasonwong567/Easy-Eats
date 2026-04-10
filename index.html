@@ -842,15 +842,9 @@ function App() {
     setFoodResults([]);
     setFoodQuery(item.label);
     const name = item.brand ? `${item.label} (${item.brand})` : item.label;
-    if (item.ingredients) {
-      doScan(item.ingredients, name);
-    } else {
-      // No ingredients from API — switch to manual tab so user can paste them
-      setTxt("");
-      setPhotoLabel(name);
-      setScannerTab("manual");
-      setFoodError("No ingredient list found for this item. Paste the ingredients from the label below and tap Scan.");
-    }
+    // Use ingredient list if available, otherwise use the food name itself
+    // (whole foods like "egg", "milk", "peanuts" are their own allergen)
+    doScan(item.ingredients || item.label, name);
   };
 
   // Emergency card save
@@ -982,12 +976,13 @@ function App() {
             </div>
             {hist.slice(0,8).map(h=>(
               <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"13px 14px",marginBottom:"6px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%",boxShadow:S.shadowSm}}>
-                {(()=>{const lr=liveResult(h);const icon=lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫";return(<>
+                {(()=>{const lr=liveResult(h);const icon=lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫";const changed=h.ingredients&&lr.overall!==h.overall;return(<>
                 <span style={{fontSize:"20px",flexShrink:0}}>{icon}</span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:"2px"}}>{h.label}</div>
                   <div style={{fontSize:"11px",color:S.mut}}>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{lr.dc>0&&<span style={{color:S.r,marginLeft:"8px"}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y,marginLeft:"8px"}}>● {lr.cc} caution</span>}</div>
                 </div>
+                {changed&&<span style={{fontSize:"9px",fontWeight:700,color:"#fcd34d",background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"5px",padding:"2px 6px",flexShrink:0}}>RESCAN</span>}
                 <span style={{color:"rgba(255,255,255,0.2)",fontSize:"16px",flexShrink:0}}>›</span>
                 </>)})()}
               </button>
