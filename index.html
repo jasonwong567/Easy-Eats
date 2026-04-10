@@ -344,6 +344,7 @@ function App() {
 
   const doScan = (text, label, fromPage) => {
     if (!prof) return;
+    if (!text || !text.trim()) return;
     const r = runScan(text, prof.allergens);
     const autoLabel = label || text.trim().split(/[,;]/)[0].replace(/\([^)]*\)/g,"").trim().slice(0,50);
     const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
@@ -377,7 +378,8 @@ function App() {
     } else if (prev && prev.fromPage === "histDetail") {
       nav("histDetail", true);
     } else {
-      nav((prev&&prev.fromPage) || "scanner");
+      const dest = (prev && prev.fromPage) || "scanner";
+      nav(["scanner","nutrition","dining","home","histDetail"].includes(dest) ? dest : "scanner");
     }
   };
 
@@ -561,9 +563,10 @@ function App() {
 
     // Full fallback (no network / geocode failed) — simulated data only
     setUsingRealData(false);
-    const match = CITIES.find(c => c.name.toLowerCase() === n.toLowerCase());
+    const citiesFallback = CITIESRef.current.length ? CITIESRef.current : CITIES;
+    const match = citiesFallback.find(c => c.name.toLowerCase() === n.toLowerCase());
     if (!match) {
-      const partials = CITIES.filter(c => c.name.toLowerCase().includes(n.toLowerCase()));
+      const partials = citiesFallback.filter(c => c.name.toLowerCase().includes(n.toLowerCase()));
       if (partials.length === 1) {
         setLocSet(partials[0].name); setLocInput(partials[0].name);
         setNearbyResults(generateNearby(partials[0].name));
@@ -585,32 +588,29 @@ function App() {
   const startBarcodeScanner = async () => {
     setBarcodeScanning(true);
     setBarcodeError("");
-    // Wait for video element to mount
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 150));
     const video = document.getElementById("barcode-video");
-    if (!video) return;
+    if (!video) { setBarcodeScanning(false); return; }
+    let scanned = false;
     try {
       const hints = new Map();
-      const formats = [
-        window.ZXing.BarcodeFormat.EAN_13,
-        window.ZXing.BarcodeFormat.EAN_8,
-        window.ZXing.BarcodeFormat.UPC_A,
-        window.ZXing.BarcodeFormat.UPC_E,
-        window.ZXing.BarcodeFormat.CODE_128,
-        window.ZXing.BarcodeFormat.CODE_39,
+      hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        window.ZXing.BarcodeFormat.EAN_13, window.ZXing.BarcodeFormat.EAN_8,
+        window.ZXing.BarcodeFormat.UPC_A, window.ZXing.BarcodeFormat.UPC_E,
+        window.ZXing.BarcodeFormat.CODE_128, window.ZXing.BarcodeFormat.CODE_39,
         window.ZXing.BarcodeFormat.QR_CODE,
-      ];
-      hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+      ]);
       const reader = new window.ZXing.BrowserMultiFormatReader(hints);
       barcodeReaderRef.current = reader;
       await reader.decodeFromVideoDevice(null, "barcode-video", async (result, err) => {
-        if (result) {
+        if (result && !scanned) {
+          scanned = true;
           stopBarcodeScanner();
           await lookupBarcode(result.getText());
         }
       });
     } catch(e) {
-      setBarcodeError("Camera access denied or not available.");
+      setBarcodeError("Camera access denied or not available. Please allow camera permissions.");
       setBarcodeScanning(false);
     }
   };
@@ -1074,7 +1074,7 @@ function App() {
           {/* Tab bar */}
           <div style={{display:"flex",gap:"4px",marginBottom:"16px",background:"rgba(255,255,255,0.04)",borderRadius:"12px",padding:"4px"}}>
             {[{id:"photo",icon:"📷",label:"Barcode"},{id:"search",icon:"🔍",label:"Search"},{id:"manual",icon:"✏️",label:"Manual"}].map(t=>(
-              <button key={t.id} onClick={()=>setScannerTab(t.id)}
+              <button key={t.id} onClick={()=>{ setScannerTab(t.id); setFoodResults([]); setFoodError(""); setNutResults([]); setNutError(""); setBarcodeError(""); if(t.id!=="photo") stopBarcodeScanner(); }}
                 style={{flex:1,padding:"9px 0",border:"none",borderRadius:"9px",fontFamily:S.f,fontSize:"13px",fontWeight:600,cursor:"pointer",transition:"all 0.15s",
                   background:scannerTab===t.id?"linear-gradient(135deg,#7c3aed,#6d28d9)":"transparent",
                   color:scannerTab===t.id?"#fff":"rgba(255,255,255,0.4)"}}>
