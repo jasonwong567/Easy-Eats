@@ -817,7 +817,7 @@ function App() {
     setNutLoading(false);
   };
 
-  // Food search via Cloudflare Worker → Open Food Facts
+  // Food search via USDA FoodData Central (branded foods with ingredient lists)
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
@@ -826,14 +826,16 @@ function App() {
     setFoodResults([]);
     setTxt("");
     try {
-      const resp = await fetch(`${WORKER_URL}/api/food-search?q=${encodeURIComponent(q)}`);
+      const resp = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=DEMO_KEY&pageSize=8&dataType=Branded`
+      );
       const data = await resp.json();
-      if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
-      const hits = (data.products || [])
-        .map(p => ({
-          label: p.product_name || "",
-          brand: p.brands || null,
-          ingredients: p.ingredients_text || null,
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const hits = (data.foods || [])
+        .map(f => ({
+          label: f.description || "",
+          brand: f.brandOwner || null,
+          ingredients: f.ingredients || null,
         }))
         .filter(h => h.label.trim());
       if (hits.length === 0) {
