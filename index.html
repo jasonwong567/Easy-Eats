@@ -793,26 +793,38 @@ function App() {
     return () => controller.abort();
   }, [nutSelected]);
 
-  // Nutrition search via same Edamam endpoint
+  // Nutrition search via USDA FoodData Central
   const searchNutrition = async () => {
     const q = nutQuery.trim();
     if (!q) return;
     setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null);
     try {
-      const resp = await fetch(`${WORKER_URL}/api/search?q=${encodeURIComponent(q)}`);
+      const resp = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&dataType=Branded`
+      );
       const data = await resp.json();
-      if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
-      const hits = (data.hints || []).map(h => ({
-        label: h.food.label,
-        brand: h.food.brand || null,
-        ingredients: h.food.ingredients || null,
-        nutrients: h.food.nutrients || {},
-        category: h.food.category || null,
-      })).filter(h => h.label).slice(0, 8);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const hits = (data.foods || []).map(f => {
+        // Map USDA foodNutrients array to the format the nutrition card expects
+        const nutMap = {};
+        (f.foodNutrients || []).forEach(n => {
+          if (n.nutrientId === 1008) nutMap.ENERC_KCAL = n.value;
+          else if (n.nutrientId === 1003) nutMap.PROCNT = n.value;
+          else if (n.nutrientId === 1004) nutMap.FAT = n.value;
+          else if (n.nutrientId === 1005) nutMap.CHOCDF = n.value;
+          else if (n.nutrientId === 1079) nutMap.FIBTG = n.value;
+        });
+        return {
+          label: f.description || "",
+          brand: f.brandOwner || null,
+          ingredients: f.ingredients || null,
+          nutrients: nutMap,
+        };
+      }).filter(h => h.label.trim()).slice(0, 8);
       if (hits.length === 0) setNutError("No results found. Try a different search term.");
       else setNutResults(hits);
     } catch(e) {
-      setNutError(e.message.includes("429") ? "Search limit reached — please wait a moment and try again." : "Search failed. Check your connection and try again.");
+      setNutError("Search failed. Check your connection and try again.");
     }
     setNutLoading(false);
   };
@@ -1101,9 +1113,9 @@ function App() {
                 {ocrLoading && <div style={{textAlign:"center",padding:"8px",fontSize:"13px",color:S.mut}}>⏳ Reading label...</div>}
                 {!ocrLoading && ocrBad && (
                   <div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"10px",padding:"12px",textAlign:"center",marginBottom:"10px"}}>
-                    <div style={{fontSize:"24px",marginBottom:"4px"}}>📷</div>
-                    <div style={{fontSize:"13px",color:"#fca5a5",fontWeight:600,marginBottom:"4px"}}>Photo quality too low</div>
-                    <div style={{fontSize:"11px",color:S.mut,marginBottom:"10px"}}>Try better lighting and hold the camera steady, focusing directly on the ingredient list.</div>
+                    <div style={{fontSize:"24px",marginBottom:"4px"}}>📋</div>
+                    <div style={{fontSize:"13px",color:"#fca5a5",fontWeight:600,marginBottom:"4px"}}>Couldn't find an ingredients list</div>
+                    <div style={{fontSize:"11px",color:S.mut,marginBottom:"10px"}}>Make sure the photo shows the ingredients panel on the packaging — not the front of the product.</div>
                     <label style={{display:"inline-block",padding:"8px 18px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
                       <input type="file" accept="image/*" capture="environment" onChange={e=>{setPhotoPreview(null);setOcrBad(false);setTxt("");setPhotoLabel("");handlePhotoUpload(e);}} style={{display:"none"}} />
                       Retake Photo
