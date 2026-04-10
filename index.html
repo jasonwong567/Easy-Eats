@@ -491,22 +491,54 @@ function App() {
   // Map OSM names to our chain database
   const matchChain = (osmName) => {
     if (!osmName) return null;
-    const n = osmName.toLowerCase().replace(/['']/g,"'");
+    const n = osmName.toLowerCase().replace(/['''\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
     const chainList = chainsRef.current.length ? chainsRef.current : chains;
     return chainList.find(ch => {
-      const cn = ch.name.toLowerCase().replace(/['']/g,"'");
-      return n.includes(cn) || cn.includes(n) || 
-        (cn === "mcdonald's" && n.includes("mcdonald")) ||
-        (cn === "chick-fil-a" && (n.includes("chick-fil") || n.includes("chickfila"))) ||
-        (cn === "dunkin'" && n.includes("dunkin")) ||
-        (cn === "wendy's" && n.includes("wendy")) ||
-        (cn === "arby's" && n.includes("arby")) ||
-        (cn === "denny's" && n.includes("denny")) ||
-        (cn === "domino's" && n.includes("domino")) ||
-        (cn === "applebee's" && n.includes("applebee")) ||
-        (cn === "papa john's" && n.includes("papa john")) ||
-        (cn === "popeyes" && n.includes("popeye")) ||
-        (cn === "dairy queen" && n.includes("dairy queen"));
+      const cn = ch.name.toLowerCase().replace(/['''\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
+      if (n === cn || n.includes(cn) || cn.includes(n)) return true;
+      // Common OSM name variants
+      const aliases = {
+        "mcdonalds":    ["mcdonald"],
+        "chickfila":    ["chick-fil", "chickfil", "chick fil"],
+        "dunkin":       ["dunkin"],
+        "wendys":       ["wendy"],
+        "arbys":        ["arby"],
+        "dennys":       ["denny"],
+        "dominos":      ["domino"],
+        "applebees":    ["applebee"],
+        "papa johns":   ["papa john"],
+        "popeyes":      ["popeye"],
+        "dairy queen":  ["dairy queen","dq"],
+        "starbucks":    ["starbuck"],
+        "subway":       ["subway"],
+        "taco bell":    ["taco bell"],
+        "burger king":  ["burger king"],
+        "pizza hut":    ["pizza hut"],
+        "kfc":          ["kfc","kentucky fried"],
+        "panera bread": ["panera"],
+        "chipotle":     ["chipotle"],
+        "five guys":    ["five guys","5 guys"],
+        "shake shack":  ["shake shack"],
+        "panda express":["panda express","panda"],
+        "jersey mikes": ["jersey mike"],
+        "jimmy johns":  ["jimmy john"],
+        "wingstop":     ["wingstop"],
+        "buffalo wild wings":["buffalo wild","bdubs","bww"],
+        "raising canes":["raising cane","canes"],
+        "culvers":      ["culver"],
+        "whataburger":  ["whataburger"],
+        "sonic drivein":["sonic"],
+        "jack in the box":["jack in the box"],
+        "in-n-out burger":["in-n-out","in n out","innout"],
+        "jamba":        ["jamba"],
+        "smoothie king":["smoothie king"],
+        "cold stone creamery":["cold stone"],
+        "baskinrobbins":["baskin"],
+        "sweetgreen":   ["sweetgreen"],
+      };
+      const key = Object.keys(aliases).find(k => cn.includes(k) || k.includes(cn));
+      if (key) return aliases[key].some(a => n.includes(a));
+      return false;
     }) || null;
   };
 
@@ -524,7 +556,7 @@ function App() {
       const displayName = geoData[0].display_name.split(",").slice(0,2).join(",").trim();
 
       // Step 2: Query Overpass for restaurants/fast food within ~10 miles (16km)
-      const overpassQuery = `[out:json][timeout:15];(node["amenity"="fast_food"](around:16000,${lat},${lon});node["amenity"="restaurant"](around:16000,${lat},${lon});node["amenity"="cafe"](around:16000,${lat},${lon});node["amenity"="ice_cream"](around:16000,${lat},${lon}););out body 300;`;
+      const overpassQuery = `[out:json][timeout:30];(node["amenity"="fast_food"](around:16000,${lat},${lon});node["amenity"="restaurant"](around:16000,${lat},${lon});node["amenity"="cafe"](around:16000,${lat},${lon});node["amenity"="ice_cream"](around:16000,${lat},${lon});node["amenity"="food_court"](around:16000,${lat},${lon}););out body 2000;`;
       const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
       const overpassData = await overpassRes.json();
 
