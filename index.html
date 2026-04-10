@@ -218,7 +218,7 @@ if (!document.querySelector('link[href*="DM+Sans"]')) {
   fl.rel="stylesheet"; document.head.appendChild(fl);
 }
 
-const S = { f:"'DM Sans',sans-serif", sf:"'Fraunces',serif", bg:"#0a0d16", card:"rgba(255,255,255,0.055)", card2:"rgba(255,255,255,0.08)", brd:"rgba(255,255,255,0.1)", mut:"rgba(255,255,255,0.38)", g:"#22c55e", y:"#f59e0b", r:"#ef4444", p:"#a78bfa", pbg:"rgba(139,92,246,0.14)", shadow:"0 4px 24px rgba(0,0,0,0.4)", shadowSm:"0 2px 12px rgba(0,0,0,0.3)" };
+const S = { f:"'DM Sans',sans-serif", sf:"'Fraunces',serif", bg:"#080b14", card:"rgba(255,255,255,0.06)", card2:"rgba(255,255,255,0.1)", brd:"rgba(255,255,255,0.09)", mut:"rgba(255,255,255,0.35)", g:"#22c55e", y:"#f59e0b", r:"#ef4444", p:"#a78bfa", pbg:"rgba(139,92,246,0.15)", shadow:"0 8px 32px rgba(0,0,0,0.5)", shadowSm:"0 2px 16px rgba(0,0,0,0.35)", cardBorder:"rgba(255,255,255,0.07)" };
 const sc = s => s==="safe"?S.g:s==="caution"?S.y:S.r;
 const sb = s => s==="safe"?"rgba(34,197,94,0.08)":s==="caution"?"rgba(245,158,11,0.08)":"rgba(239,68,68,0.08)";
 
@@ -931,23 +931,24 @@ function App() {
   const NavBtn = ({id,icon,label}) => {
     const active = pg===id||(pg==="results"&&id==="scanner")||(pg==="chain"&&id==="dining")||(pg==="histDetail"&&id==="home");
     return (
-      <button onClick={()=>nav(id)} style={{flex:1,padding:"6px 4px",background:"transparent",border:"none",cursor:"pointer",fontFamily:S.f,display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",position:"relative"}}>
-        <div style={{width:"42px",height:"28px",borderRadius:"14px",background:active?S.pbg:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s",fontSize:"18px"}}>{icon}</div>
-        <span style={{fontSize:"10px",fontWeight:active?700:400,color:active?S.p:S.mut,letterSpacing:"0.2px",transition:"color 0.2s"}}>{label}</span>
+      <button onClick={()=>nav(id)} style={{flex:1,padding:"8px 4px 4px",background:"transparent",border:"none",cursor:"pointer",fontFamily:S.f,display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",position:"relative"}}>
+        {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:"24px",height:"2px",borderRadius:"0 0 2px 2px",background:"linear-gradient(90deg,#7c3aed,#a78bfa)"}} />}
+        <div style={{width:"40px",height:"28px",borderRadius:"12px",background:active?"rgba(139,92,246,0.12)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s",fontSize:"17px",filter:active?"none":"grayscale(0.2) opacity(0.6)"}}>{icon}</div>
+        <span style={{fontSize:"10px",fontWeight:active?600:400,color:active?"#c4b5fd":S.mut,letterSpacing:"0.1px",transition:"color 0.2s"}}>{label}</span>
       </button>
     );
   };
 
   return (
-    <div style={{minHeight:"100vh",fontFamily:S.f,background:S.bg,color:"#e8e6f0"}}>
-      <header style={{padding:"14px 20px 13px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${S.brd}`,background:"rgba(10,13,22,0.92)",backdropFilter:"blur(24px)",position:"sticky",top:0,zIndex:100}}>
-        <div style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>nav("home")}>
-          <div style={{width:"34px",height:"34px",borderRadius:"11px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"17px",boxShadow:"0 2px 10px rgba(34,197,94,0.35)"}}>🍽</div>
-          <span style={{fontFamily:S.sf,fontSize:"18px",fontWeight:800,color:"#fff",letterSpacing:"-0.3px"}}>Easy Eats</span>
+    <div style={{minHeight:"100vh",fontFamily:S.f,background:S.bg,color:"#e8e6f0",backgroundImage:"radial-gradient(ellipse 80% 50% at 50% -20%,rgba(139,92,246,0.08),transparent)"}}>
+      <header style={{padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid rgba(255,255,255,0.07)`,background:"rgba(8,11,20,0.9)",backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:"9px",cursor:"pointer"}} onClick={()=>nav("home")}>
+          <div style={{width:"32px",height:"32px",borderRadius:"10px",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",boxShadow:"0 2px 12px rgba(34,197,94,0.3)",flexShrink:0}}>🍽</div>
+          <span style={{fontFamily:S.sf,fontSize:"17px",fontWeight:800,color:"#fff",letterSpacing:"-0.4px"}}>Easy Eats</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-          <div style={{display:"flex",gap:"3px",fontSize:"14px",opacity:0.7}}>{prof.allergens.slice(0,4).map(id=><span key={id}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center",marginLeft:"2px"}}>+{prof.allergens.length-4}</span>}</div>
-          <div onClick={()=>nav("profile")} style={{width:"32px",height:"32px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:"0 2px 10px rgba(124,58,237,0.4)"}}>{prof.name.charAt(0).toUpperCase()}</div>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+          <div style={{display:"flex",gap:"2px",padding:"4px 8px",background:"rgba(255,255,255,0.05)",borderRadius:"20px",border:`1px solid ${S.brd}`}}>{prof.allergens.slice(0,4).map(id=><span key={id} style={{fontSize:"13px"}}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"9px",color:S.mut,alignSelf:"center",marginLeft:"2px"}}>+{prof.allergens.length-4}</span>}</div>
+          <div onClick={()=>nav("profile")} style={{width:"30px",height:"30px",borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:"0 2px 12px rgba(124,58,237,0.35)"}}>{prof.name.charAt(0).toUpperCase()}</div>
         </div>
       </header>
 
@@ -955,44 +956,49 @@ function App() {
 
         {/* ═══ HOME ═══ */}
         {pg==="home"&&<div>
-          <div style={{marginBottom:"20px"}}>
-            <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:800,color:"#fff",margin:"0 0 2px",letterSpacing:"-0.5px"}}>Hey, {prof.name} 👋</h1>
-            <p style={{color:S.mut,fontSize:"13px"}}>Your allergen safety dashboard.</p>
+          {/* Hero greeting */}
+          <div style={{padding:"20px",borderRadius:"20px",background:"linear-gradient(135deg,rgba(124,58,237,0.18),rgba(139,92,246,0.08))",border:"1px solid rgba(139,92,246,0.2)",marginBottom:"16px",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-20,right:-20,width:"100px",height:"100px",borderRadius:"50%",background:"rgba(139,92,246,0.08)"}} />
+            <div style={{fontSize:"11px",color:"rgba(167,139,250,0.8)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"6px"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+            <h1 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:800,color:"#fff",margin:"0 0 4px",letterSpacing:"-0.4px"}}>Hello, {prof.name}</h1>
+            <p style={{color:"rgba(255,255,255,0.5)",fontSize:"13px",margin:"0 0 14px"}}>Tracking {prof.allergens.length} allergen{prof.allergens.length!==1?"s":""}</p>
+            <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+              {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return a?<span key={id} style={{padding:"3px 8px",background:"rgba(139,92,246,0.2)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:"20px",fontSize:"11px",color:"#c4b5fd",fontWeight:500}}>{a.icon} {a.label}</span>:null;})}
+            </div>
           </div>
 
           {hist.length>0 ? <>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"24px"}}>
-              {[{l:"Total Scans",v:hist.length,c:S.p,icon:"🔬"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,icon:"✅"},{l:"Flagged",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,icon:"🚫"}].map(s=>(
-                <div key={s.l} style={{padding:"16px 10px 14px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",boxShadow:S.shadowSm}}>
-                  <div style={{fontSize:"10px",marginBottom:"6px"}}>{s.icon}</div>
-                  <div style={{fontSize:"28px",fontWeight:800,fontFamily:S.sf,color:s.c,lineHeight:1}}>{s.v}</div>
-                  <div style={{fontSize:"10px",color:S.mut,marginTop:"4px",letterSpacing:"0.3px"}}>{s.l}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"18px"}}>
+              {[{l:"Total",v:hist.length,c:"#a78bfa",bg:"rgba(139,92,246,0.1)",bdr:"rgba(139,92,246,0.2)"},{l:"Safe",v:hist.filter(h=>liveResult(h).overall==="safe").length,c:S.g,bg:"rgba(34,197,94,0.08)",bdr:"rgba(34,197,94,0.18)"},{l:"Flagged",v:hist.filter(h=>liveResult(h).overall==="danger").length,c:S.r,bg:"rgba(239,68,68,0.08)",bdr:"rgba(239,68,68,0.18)"}].map(s=>(
+                <div key={s.l} style={{padding:"14px 8px",borderRadius:"16px",background:s.bg,border:`1px solid ${s.bdr}`,textAlign:"center"}}>
+                  <div style={{fontSize:"26px",fontWeight:800,fontFamily:S.sf,color:s.c,lineHeight:1,marginBottom:"3px"}}>{s.v}</div>
+                  <div style={{fontSize:"10px",color:s.c,opacity:0.7,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{s.l}</div>
                 </div>
               ))}
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-              <h3 style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>Recent Scans</h3>
+              <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>Recent Scans</span>
               <span style={{fontSize:"11px",color:S.mut}}>{hist.length} total</span>
             </div>
             {hist.slice(0,8).map(h=>(
-              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"13px 14px",marginBottom:"6px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%",boxShadow:S.shadowSm}}>
-                {(()=>{const lr=liveResult(h);const icon=lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫";const changed=h.ingredients&&lr.overall!==h.overall;return(<>
-                <span style={{fontSize:"20px",flexShrink:0}}>{icon}</span>
+              <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"12px 14px",marginBottom:"6px",background:S.card,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:"14px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",width:"100%"}}>
+                {(()=>{const lr=liveResult(h);const changed=h.ingredients&&lr.overall!==h.overall;const clr=sc(lr.overall);return(<>
+                <div style={{width:"36px",height:"36px",borderRadius:"12px",background:`${clr}15`,border:`1px solid ${clr}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px",flexShrink:0}}>{lr.overall==="safe"?"✅":lr.overall==="caution"?"⚠️":"🚫"}</div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:"2px"}}>{h.label}</div>
-                  <div style={{fontSize:"11px",color:S.mut}}>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{lr.dc>0&&<span style={{color:S.r,marginLeft:"8px"}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y,marginLeft:"8px"}}>● {lr.cc} caution</span>}</div>
+                  <div style={{fontSize:"11px",color:S.mut,display:"flex",gap:"8px",alignItems:"center"}}><span>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>{lr.dc>0&&<span style={{color:S.r}}>● {lr.dc} danger</span>}{lr.cc>0&&<span style={{color:S.y}}>● {lr.cc} caution</span>}</div>
                 </div>
-                {changed&&<span style={{fontSize:"9px",fontWeight:700,color:"#fcd34d",background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:"5px",padding:"2px 6px",flexShrink:0}}>RESCAN</span>}
-                <span style={{color:"rgba(255,255,255,0.2)",fontSize:"16px",flexShrink:0}}>›</span>
+                {changed&&<span style={{fontSize:"9px",fontWeight:700,color:"#fcd34d",background:"rgba(245,158,11,0.12)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:"5px",padding:"2px 6px",flexShrink:0}}>RESCAN</span>}
+                <span style={{color:"rgba(255,255,255,0.15)",fontSize:"14px",flexShrink:0}}>›</span>
                 </>)})()}
               </button>
             ))}
           </> : (
-            <div style={{textAlign:"center",padding:"48px 20px",background:S.card,borderRadius:"20px",border:`1px solid ${S.brd}`}}>
-              <div style={{fontSize:"48px",marginBottom:"14px"}}>🍽</div>
+            <div style={{textAlign:"center",padding:"48px 20px",background:"rgba(255,255,255,0.03)",borderRadius:"20px",border:`1px solid rgba(255,255,255,0.07)`}}>
+              <div style={{width:"64px",height:"64px",borderRadius:"20px",background:"linear-gradient(135deg,rgba(124,58,237,0.3),rgba(139,92,246,0.15))",border:"1px solid rgba(139,92,246,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",margin:"0 auto 16px"}}>🔬</div>
               <div style={{fontFamily:S.sf,fontSize:"20px",fontWeight:800,color:"#fff",marginBottom:"8px"}}>No scans yet</div>
-              <div style={{fontSize:"13px",color:S.mut,lineHeight:1.6,marginBottom:"24px"}}>Scan an ingredient label to check for your allergens.</div>
-              <button onClick={()=>nav("scanner")} style={{padding:"12px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 20px rgba(124,58,237,0.4)"}}>Start Scanning</button>
+              <div style={{fontSize:"13px",color:S.mut,lineHeight:1.6,marginBottom:"24px",maxWidth:"260px",margin:"0 auto 24px"}}>Take a photo of an ingredient label or search for a food to check it against your allergens.</div>
+              <button onClick={()=>nav("scanner")} style={{padding:"13px 28px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"14px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:"0 4px 24px rgba(124,58,237,0.4)"}}>Start Scanning</button>
             </div>
           )}
         </div>}
@@ -1001,7 +1007,7 @@ function App() {
         {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const resultChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
             <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0}}>← Back</button>
-            <button onClick={()=>{nav("scanner",true);setScannerTab("manual");setTxt(viewHist.ingredients||"");setPhotoLabel(viewHist.label);}} style={{padding:"7px 14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"9px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>↺ Rescan</button>
+            <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"7px 14px",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",borderRadius:"9px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>↺ Rescan</button>
           </div>
           <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:800,color:"#fff",margin:"0 0 4px"}}>{viewHist.label}</h2>
           <div style={{fontSize:"11px",color:S.mut,marginBottom:"8px"}}>{new Date(viewHist.date).toLocaleString()}</div>
@@ -1096,7 +1102,7 @@ function App() {
                 onKeyDown={e=>e.key==="Enter"&&searchFood()}
                 placeholder="e.g. Oreo, Chobani Greek yogurt, Tyson nuggets..."
                 style={{flex:1,padding:"11px 13px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${foodError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"10px",color:"#fff",fontSize:"13px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
-              <button onClick={searchFood} disabled={!foodQuery.trim()||foodLoading}
+              <button onClick={()=>searchFood()} disabled={!foodQuery.trim()||foodLoading}
                 style={{padding:"11px 18px",background:foodQuery.trim()&&!foodLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"10px",color:foodQuery.trim()&&!foodLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"13px",fontWeight:700,cursor:foodQuery.trim()&&!foodLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
                 {foodLoading?"…":"Search"}
               </button>
@@ -1108,7 +1114,7 @@ function App() {
                   style={{padding:"11px 13px",background:"rgba(255,255,255,0.03)",border:`1px solid ${S.brd}`,borderRadius:"10px",cursor:"pointer",fontFamily:S.f,color:"#e8e6f0",textAlign:"left",display:"flex",alignItems:"center",gap:"10px",width:"100%"}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:600,fontSize:"13px",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
-                    {item.brand&&<div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{item.brand}</div>}
+                    <div style={{fontSize:"10px",color:S.mut,marginTop:"1px"}}>{item.brand||item.category||""}{item.ingredients?<span style={{marginLeft:item.brand?6:0,color:"rgba(255,255,255,0.3)"}}>{item.ingredients.split(",").slice(0,3).join(", ")}{item.ingredients.split(",").length>3?"…":""}</span>:<span style={{marginLeft:item.brand?6:0,color:S.mut}}>Allergen check by name</span>}</div>
                   </div>
                   <span style={{fontSize:"11px",color:S.p,fontWeight:600,flexShrink:0}}>Scan →</span>
                 </button>
@@ -1193,7 +1199,7 @@ function App() {
             <input value={nutQuery} onChange={e=>{setNutQuery(e.target.value);if(nutError)setNutError("");}} onKeyDown={e=>e.key==="Enter"&&searchNutrition()}
               placeholder="e.g. Greek yogurt, almonds, cheddar cheese..."
               style={{flex:1,padding:"12px 14px",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${nutError?"rgba(239,68,68,0.4)":S.brd}`,borderRadius:"12px",color:"#fff",fontSize:"14px",fontFamily:S.f,outline:"none",boxSizing:"border-box"}} />
-            <button onClick={searchNutrition} disabled={!nutQuery.trim()||nutLoading}
+            <button onClick={()=>searchNutrition()} disabled={!nutQuery.trim()||nutLoading}
               style={{padding:"12px 20px",background:nutQuery.trim()&&!nutLoading?"linear-gradient(135deg,#7c3aed,#6d28d9)":"rgba(255,255,255,0.05)",border:"none",borderRadius:"12px",color:nutQuery.trim()&&!nutLoading?"#fff":"rgba(255,255,255,0.2)",fontSize:"14px",fontWeight:700,cursor:nutQuery.trim()&&!nutLoading?"pointer":"default",fontFamily:S.f,whiteSpace:"nowrap"}}>
               {nutLoading?"…":"Search"}
             </button>
@@ -1496,7 +1502,7 @@ function App() {
         </div>}
       </main>
 
-      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(10,13,22,0.96)",backdropFilter:"blur(24px)",borderTop:`1px solid ${S.brd}`,padding:"6px 8px 10px",display:"flex",gap:"2px",zIndex:100}}>
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(8,11,20,0.97)",backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",borderTop:`1px solid rgba(255,255,255,0.07)`,paddingBottom:"env(safe-area-inset-bottom,8px)",display:"flex",zIndex:100}}>
         <NavBtn id="home" icon="🏠" label="Home" />
         <NavBtn id="scanner" icon="🔬" label="Scan" />
         <NavBtn id="nutrition" icon="🍎" label="Nutrition" />
