@@ -558,29 +558,42 @@ function App() {
       const displayName = geoData[0].display_name.split(",").slice(0,2).join(",").trim();
 
       // Step 2: Query Overpass for restaurants/fast food within ~10 miles (16km)
-      const overpassQuery = `[out:json][timeout:30];(node["amenity"="fast_food"](around:16000,${lat},${lon});node["amenity"="restaurant"](around:16000,${lat},${lon});node["amenity"="cafe"](around:16000,${lat},${lon});node["amenity"="ice_cream"](around:16000,${lat},${lon});node["amenity"="food_court"](around:16000,${lat},${lon}););out body 2000;`;
-      const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
-      const overpassData = await overpassRes.json();
+      // Try primary then mirror — if both fail, return geocode coords with empty results so map still shows
+      const overpassQuery = `[out:json][timeout:25];(node["amenity"="fast_food"](around:16000,${lat},${lon});node["amenity"="restaurant"](around:16000,${lat},${lon});node["amenity"="cafe"](around:16000,${lat},${lon});node["amenity"="ice_cream"](around:16000,${lat},${lon});node["amenity"="food_court"](around:16000,${lat},${lon}););out body 2000;`;
+      const overpassEndpoints = [
+        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
+        `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
+      ];
 
-      if (!(overpassData.elements&&overpassData.elements.length)) return { results: [], displayName, center: [lat, lon] };
+      let overpassData = null;
+      for (const url of overpassEndpoints) {
+        try {
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 20000);
+          const res = await fetch(url, { signal: ctrl.signal });
+          clearTimeout(tid);
+          if (res.ok) { overpassData = await res.json(); break; }
+        } catch (e) { /* try next */ }
+      }
+
+      if (!overpassData || !(overpassData.elements&&overpassData.elements.length)) return { results: [], displayName, center: [lat, lon] };
 
       // Step 3: Match OSM results to our chain database
       const results = [];
-      const seen = new Set(); // avoid duplicate locations
+      const seen = new Set();
       overpassData.elements.forEach(el => {
         const name = (el.tags&&el.tags.name);
         const chain = matchChain(name);
         if (!chain) return;
-        
+
         const dist = haversine(lat, lon, el.lat, el.lon);
         if (dist > 10) return;
-        
-        // Build address from OSM tags
+
         const street = (el.tags&&el.tags["addr:street"]) || "";
         const houseNum = (el.tags&&el.tags["addr:housenumber"]) || "";
         const city = (el.tags&&el.tags["addr:city"]) || displayName;
         const addr = houseNum && street ? `${houseNum} ${street}, ${city}` : street ? `${street}, ${city}` : city;
-        
+
         const locKey = `${chain.id}-${el.id}`;
         if (seen.has(locKey)) return;
         seen.add(locKey);
