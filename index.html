@@ -63,6 +63,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -188,15 +191,17 @@ const sc = s => s==="safe"?S.g:s==="caution"?S.y:S.r;
 const sb = s => s==="safe"?S.gbg:s==="caution"?S.ybg:S.rbg;
 const sbrd = s => s==="safe"?S.gbrd:s==="caution"?S.ybrd:S.rbrd;
 
-// ─── MULTI-USER STORAGE ───
-const USERS_KEY = "easyeats-users"; // stores {username: {password, name, allergens, history, createdAt}}
-const SESSION_KEY = "easyeats-session"; // stores current username
-
-function loadUsers() { try { const r = localStorage.getItem(USERS_KEY); return r ? JSON.parse(r) : {}; } catch(e) { return {}; } }
-function saveUsers(users) { try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) { console.error(e); } }
-function loadSession() { try { return localStorage.getItem(SESSION_KEY); } catch(e) { return null; } }
-function saveSession(username) { try { localStorage.setItem(SESSION_KEY, username); } catch(e) { console.error(e); } }
-function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch(e) { console.error(e); } }
+// ─── FIREBASE ───
+firebase.initializeApp({
+  apiKey: "AIzaSyAqfsp3b8kZOom_eGE-IeUjH5tEdzQJ8kU",
+  authDomain: "easy-eats-246e5.firebaseapp.com",
+  projectId: "easy-eats-246e5",
+  storageBucket: "easy-eats-246e5.firebasestorage.app",
+  messagingSenderId: "102304654158",
+  appId: "1:102304654158:web:377d9dd0d0760760adf41f",
+});
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 function App() {
   const [loaded, setLoaded] = useState(false);
@@ -206,9 +211,6 @@ function App() {
   const [FP, setFP] = useState([]);
   const [AMB, setAMB] = useState([]);
   const [CITIES, setCITIES] = useState([]);
-  const [users, setUsers] = useState({});
-  const usersRef = useRef(users);
-  useEffect(() => { usersRef.current = users; }, [users]);
   const [currentUser, setCurrentUser] = useState(null);
   const [prof, setProf] = useState(null);
 
@@ -281,20 +283,27 @@ function App() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
 
-  // Load on mount
+  // Restore session via Firebase Auth
   useEffect(() => {
-    (() => {
-      const u = loadUsers();
-      setUsers(u);
-      const sess = loadSession();
-      if (sess && u[sess]) {
-        setCurrentUser(sess);
-        setProf(u[sess]);
-        setEmergencyContact(u[sess].emergencyContact||"");
-        setEmergencyPhone(u[sess].emergencyPhone||"");
+    const unsub = auth.onAuthStateChanged(async (fbUser) => {
+      if (fbUser) {
+        try {
+          const snap = await db.collection("users").doc(fbUser.uid).get();
+          if (snap.exists) {
+            const data = snap.data();
+            setCurrentUser(fbUser.email);
+            setProf(data);
+            setEmergencyContact(data.emergencyContact||"");
+            setEmergencyPhone(data.emergencyPhone||"");
+          }
+        } catch(e) {}
+      } else {
+        setCurrentUser(null);
+        setProf(null);
       }
       setLoaded(true);
-    })();
+    });
+    return () => unsub();
   }, []);
 
   // Load external data files
@@ -315,93 +324,87 @@ function App() {
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const saveProf = (updates) => {
-    const cur = currentUserRef.current;
-    if (!cur) return;
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
     const newProf = { ...profRef.current, ...updates };
     setProf(newProf);
-    const newUsers = { ...usersRef.current, [cur]: newProf };
-    setUsers(newUsers);
-    saveUsers(newUsers);
+    db.collection("users").doc(fbUser.uid).update(updates).catch(()=>{});
   };
 
   // Auth actions
-  const doLogin = () => {
+  const doLogin = async () => {
     setAuthError("");
-    const u = authUser.trim().toLowerCase();
+    const email = authUser.trim();
     const p = authPass;
-    const cur = usersRef.current;
-    if (!u || !p) { setAuthError("Enter username and password."); return; }
-    if (!cur[u]) { setAuthError("Account not found. Sign up instead?"); return; }
-    if (cur[u].password !== p) { setAuthError("Incorrect password."); return; }
-    saveSession(u);
-    setCurrentUser(u);
-    setProf(cur[u]);
-    setEmergencyContact(cur[u].emergencyContact||"");
-    setEmergencyPhone(cur[u].emergencyPhone||"");
-    setAuthUser(""); setAuthPass(""); setAuthError("");
-    setPg("home");
+    if (!email || !p) { setAuthError("Enter email and password."); return; }
+    try {
+      await auth.signInWithEmailAndPassword(email, p);
+      setAuthUser(""); setAuthPass(""); setAuthError("");
+      setPg("home");
+    } catch(e) {
+      if (e.code==="auth/user-not-found"||e.code==="auth/invalid-credential") setAuthError("Account not found. Sign up instead?");
+      else if (e.code==="auth/wrong-password") setAuthError("Incorrect password.");
+      else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
+      else setAuthError("Login failed. Try again.");
+    }
   };
 
   const doSignup = () => {
     setAuthError("");
-    const u = authUser.trim().toLowerCase();
+    const email = authUser.trim();
     const p = authPass;
     const n = authName.trim();
-    if (!u) { setAuthError("Choose a username."); return; }
-    if (u.length < 3) { setAuthError("Username must be at least 3 characters."); return; }
-    if (/[^a-z0-9_]/.test(u)) { setAuthError("Username can only have letters, numbers, and underscores."); return; }
+    if (!email) { setAuthError("Enter your email."); return; }
     if (!p) { setAuthError("Choose a password."); return; }
-    if (p.length < 4) { setAuthError("Password must be at least 4 characters."); return; }
+    if (p.length < 6) { setAuthError("Password must be at least 6 characters."); return; }
     if (!n) { setAuthError("Enter your name."); return; }
-    if (usersRef.current[u]) { setAuthError(`Username "${u}" is already taken.`); return; }
     setAuthMode("setupAllergens");
     setAuthError("");
   };
 
-  const finishSignup = () => {
+  const finishSignup = async () => {
     if (authAllergens.length === 0 && authCustomList.length === 0) { setAuthError("Select at least one allergen."); return; }
-    const u = authUser.trim().toLowerCase();
-    const newProf = { password: authPass, name: authName.trim(), allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
-    const newUsers = { ...usersRef.current, [u]: newProf };
-    setUsers(newUsers);
-    setCurrentUser(u);
-    setProf(newProf);
-    saveUsers(newUsers);
-    saveSession(u);
-    setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
-    setPg("home");
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(authUser.trim(), authPass);
+      const newProf = { name: authName.trim(), allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
+      await db.collection("users").doc(cred.user.uid).set(newProf);
+      setCurrentUser(cred.user.email);
+      setProf(newProf);
+      setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
+      setPg("home");
+    } catch(e) {
+      if (e.code==="auth/email-already-in-use") setAuthError("Email already in use. Log in instead?");
+      else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
+      else setAuthError("Sign up failed. Try again.");
+      setAuthMode("signup");
+    }
   };
 
-  const doLogout = () => {
-    clearSession();
-    setCurrentUser(null);
-    setProf(null);
-    setPg("home");
-    setAuthMode("login");
+  const doLogout = async () => {
+    await auth.signOut();
+    setCurrentUser(null); setProf(null); setPg("home"); setAuthMode("login");
     setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthError("");
     setEditingAllergens(false); setConfirmDelete(false);
     setShowEmergencyEdit(false); setEmergencyContact(""); setEmergencyPhone("");
     setPhotoPreview(null); setResultStack([]);
   };
 
-  const doDeleteAccount = () => {
-    if (!currentUser) return;
-    const newUsers = { ...usersRef.current };
-    delete newUsers[currentUser];
-    setUsers(newUsers);
-    saveUsers(newUsers);
-    clearSession();
-    setCurrentUser(null); setProf(null); setPg("home"); setAuthMode("login");
-    setConfirmDelete(false);
+  const doDeleteAccount = async () => {
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
+    try {
+      await db.collection("users").doc(fbUser.uid).delete();
+      await fbUser.delete();
+      setCurrentUser(null); setProf(null); setPg("home"); setAuthMode("login");
+      setConfirmDelete(false);
+    } catch(e) {
+      setAuthError("Please log out and log back in before deleting your account.");
+    }
   };
 
   const saveAllergenEdits = () => {
     if (editAllergens.length === 0 && editCustomList.length === 0) { return; }
-    const newProf = { ...prof, allergens: editAllergens, customAllergens: editCustomList };
-    const newUsers = { ...usersRef.current, [currentUser]: newProf };
-    setProf(newProf);
-    setUsers(newUsers);
-    saveUsers(newUsers);
+    saveProf({ allergens: editAllergens, customAllergens: editCustomList });
     setEditingAllergens(false);
   };
 
@@ -1004,8 +1007,8 @@ function App() {
                 style={{width:"100%",padding:"13px 14px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"16px"}} />
             </>}
 
-            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Username</label>
-            <input value={authUser} onChange={e=>{setAuthUser(e.target.value);setAuthError("");}} placeholder={authMode==="login"?"Enter username":"Choose a username"}
+            <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Email</label>
+            <input value={authUser} onChange={e=>{setAuthUser(e.target.value);setAuthError("");}} placeholder={authMode==="login"?"Enter your email":"Your email address"} type="email"
               style={{width:"100%",padding:"13px 14px",background:S.bg,border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"16px"}} />
 
             <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Password</label>
@@ -1555,7 +1558,7 @@ function App() {
             <div style={{width:"54px",height:"54px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px",fontWeight:700,color:"#fff",boxShadow:S.shadowBlue,flexShrink:0}}>{prof.name.charAt(0).toUpperCase()}</div>
             <div>
               <div style={{fontWeight:700,fontSize:"19px",color:S.text}}>{prof.name}</div>
-              <div style={{fontSize:"12px",color:S.mut,fontFamily:S.mono,marginTop:"2px"}}>@{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div>
+              <div style={{fontSize:"12px",color:S.mut,fontFamily:S.mono,marginTop:"2px"}}>{currentUser} · Since {new Date(prof.createdAt).toLocaleDateString()}</div>
             </div>
           </div>
 
