@@ -225,6 +225,8 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [pendingGoogleUid, setPendingGoogleUid] = useState(null);
 
   // App state
   const [pg, setPg] = useState("home");
@@ -298,6 +300,7 @@ function App() {
             setEmergencyPhone(data.emergencyPhone||"");
           } else {
             // Auth account exists but no profile yet (Google sign-in or partial signup)
+            setPendingGoogleUid(fbUser.uid);
             setAuthName(fbUser.displayName||"");
             setAuthMode("setupAllergens");
           }
@@ -354,33 +357,41 @@ function App() {
     }
   };
 
-  const doSignup = () => {
+  const doSignup = async () => {
     setAuthError("");
     const email = authUser.trim();
     const p = authPass;
     const n = authName.trim();
+    if (!n) { setAuthError("Enter your name."); return; }
     if (!email) { setAuthError("Enter your email."); return; }
     if (!p) { setAuthError("Choose a password."); return; }
     if (p.length < 6) { setAuthError("Password must be at least 6 characters."); return; }
-    if (!n) { setAuthError("Enter your name."); return; }
+    setAuthLoading(true);
+    try {
+      const methods = await auth.fetchSignInMethodsForEmail(email);
+      if (methods.length > 0) { setAuthError("An account with this email already exists. Log in instead?"); setAuthLoading(false); return; }
+    } catch(e) {
+      if (e.code==="auth/invalid-email") { setAuthError("Invalid email address."); setAuthLoading(false); return; }
+    }
+    setAuthLoading(false);
     setAuthMode("setupAllergens");
-    setAuthError("");
   };
 
   const finishSignup = async () => {
     if (authAllergens.length === 0 && authCustomList.length === 0) { setAuthError("Select at least one allergen."); return; }
+    setAuthLoading(true);
     try {
-      // If already signed in (Google), just write the Firestore doc
-      const existing = auth.currentUser;
       let uid, email, displayName;
-      if (existing) {
-        uid = existing.uid; email = existing.email; displayName = authName.trim() || existing.displayName || "User";
+      if (pendingGoogleUid) {
+        // Google sign-in — auth account already exists
+        uid = pendingGoogleUid; email = auth.currentUser?.email; displayName = authName.trim() || auth.currentUser?.displayName || "User";
       } else {
         const cred = await auth.createUserWithEmailAndPassword(authUser.trim(), authPass);
         uid = cred.user.uid; email = cred.user.email; displayName = authName.trim();
       }
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
       await db.collection("users").doc(uid).set(newProf);
+      setPendingGoogleUid(null);
       setCurrentUser(email);
       setProf(newProf);
       setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
@@ -388,26 +399,32 @@ function App() {
     } catch(e) {
       if (e.code==="auth/email-already-in-use") setAuthError("Email already in use. Log in instead?");
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
-      else setAuthError("Sign up failed. Try again.");
-      if (!auth.currentUser) setAuthMode("signup");
+      else setAuthError("Sign up failed: " + (e.message||"Try again."));
+      if (!pendingGoogleUid) setAuthMode("signup");
     }
+    setAuthLoading(false);
   };
 
   const doGoogleSignIn = async () => {
     setAuthError("");
+    setAuthLoading(true);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       await auth.signInWithPopup(provider);
-      // onAuthStateChanged handles the rest
     } catch(e) {
-      if (e.code !== "auth/popup-closed-by-user") setAuthError("Google sign-in failed. Try again.");
+      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") { setAuthLoading(false); return; }
+      if (e.code==="auth/unauthorized-domain") setAuthError("Domain not authorized — add it in Firebase → Authentication → Settings → Authorized domains.");
+      else if (e.code==="auth/popup-blocked") setAuthError("Popup was blocked. Please allow popups for this site and try again.");
+      else setAuthError("Google sign-in failed: " + (e.message||"Try again."));
     }
+    setAuthLoading(false);
   };
 
   const doForgotPassword = async () => {
     setAuthError("");
     const email = authUser.trim();
     if (!email) { setAuthError("Enter your email address."); return; }
+    setAuthLoading(true);
     try {
       await auth.sendPasswordResetEmail(email);
       setForgotSent(true);
@@ -416,6 +433,7 @@ function App() {
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
       else setAuthError("Failed to send reset email. Try again.");
     }
+    setAuthLoading(false);
   };
 
   const doLogout = async () => {
@@ -1010,7 +1028,7 @@ function App() {
 
         {authMode==="setupAllergens"?(
           <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
-            <button onClick={async()=>{if(auth.currentUser&&!prof){await auth.signOut();}setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
+            <button onClick={async()=>{if(pendingGoogleUid){await auth.signOut();setPendingGoogleUid(null);}setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
             <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:400,color:S.text,margin:"0 0 6px"}}>Select your allergens</h2>
             <p style={{color:S.mut,fontSize:"13px",marginBottom:"20px"}}>Choose all that apply. You can edit these later.</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px"}}>
@@ -1041,7 +1059,10 @@ function App() {
             <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 8px",letterSpacing:"-0.3px"}}>Reset password</h2>
             <p style={{color:S.mut,fontSize:"13px",marginBottom:"20px"}}>Enter your email and we'll send you a reset link.</p>
             {forgotSent?(
-              <div style={{padding:"16px",borderRadius:"12px",background:S.gbg,border:`1px solid ${S.gbrd}`,color:S.g,fontSize:"14px",fontWeight:600,textAlign:"center"}}>✓ Reset email sent — check your inbox</div>
+              <div>
+                <div style={{padding:"16px",borderRadius:"12px",background:S.gbg,border:`1px solid ${S.gbrd}`,color:S.g,fontSize:"14px",fontWeight:600,textAlign:"center",marginBottom:"12px"}}>✓ Reset email sent — check your inbox and spam folder</div>
+                <button onClick={async()=>{setForgotSent(false);await doForgotPassword();}} style={{width:"100%",padding:"11px",background:"none",border:`1.5px solid ${S.brd}`,borderRadius:"12px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Resend email</button>
+              </div>
             ):(
               <>
                 <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Email</label>
@@ -1057,9 +1078,9 @@ function App() {
             <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 20px",letterSpacing:"-0.3px"}}>{authMode==="login"?"Welcome back":"Create account"}</h2>
 
             {/* Google Sign-In */}
-            <button onClick={doGoogleSignIn} style={{width:"100%",padding:"13px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontWeight:600,cursor:"pointer",fontFamily:S.f,display:"flex",alignItems:"center",justifyContent:"center",gap:"10px",marginBottom:"16px",boxShadow:S.shadowSm}}>
+            <button onClick={doGoogleSignIn} disabled={authLoading} style={{width:"100%",padding:"13px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontWeight:600,cursor:authLoading?"default":"pointer",fontFamily:S.f,display:"flex",alignItems:"center",justifyContent:"center",gap:"10px",marginBottom:"16px",boxShadow:S.shadowSm,opacity:authLoading?0.6:1}}>
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style={{width:"18px",height:"18px"}} alt="" />
-              Continue with Google
+              {authLoading?"Signing in...":"Continue with Google"}
             </button>
             <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px"}}>
               <div style={{flex:1,height:"1px",background:S.brd}} />
@@ -1090,9 +1111,9 @@ function App() {
 
             {authError&&<div style={{marginBottom:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,color:S.r,fontSize:"13px",border:`1px solid ${S.rbrd}`}}>{authError}</div>}
 
-            <button onClick={authMode==="login"?doLogin:doSignup}
-              style={{width:"100%",padding:"14px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
-              {authMode==="login"?"Log In →":"Continue →"}
+            <button onClick={authMode==="login"?doLogin:doSignup} disabled={authLoading}
+              style={{width:"100%",padding:"14px",background:authLoading?"#9CA3AF":S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:authLoading?"default":"pointer",fontFamily:S.f,boxShadow:authLoading?"none":S.shadowBlue,letterSpacing:"-0.2px"}}>
+              {authLoading?"Please wait...":authMode==="login"?"Log In →":"Continue →"}
             </button>
 
             <div style={{textAlign:"center",marginTop:"20px",fontSize:"13px",color:S.mut}}>
