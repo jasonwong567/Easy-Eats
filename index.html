@@ -298,17 +298,25 @@ function App() {
             setProf(data);
             setEmergencyContact(data.emergencyContact||"");
             setEmergencyPhone(data.emergencyPhone||"");
+            setPg("home");
           } else {
-            // Auth account exists but no profile yet (Google sign-in or partial signup)
+            // Auth account exists but no Firestore profile — needs allergen setup
             setPendingGoogleUid(fbUser.uid);
             setAuthName(fbUser.displayName||"");
             setAuthMode("setupAllergens");
           }
-        } catch(e) {}
+        } catch(e) {
+          // Firestore failed — still log in so user isn't stuck
+          console.error("Firestore load error:", e);
+          setCurrentUser(fbUser.email);
+          setProf({ name: fbUser.displayName||fbUser.email.split("@")[0], allergens: [], customAllergens: [], history: [] });
+          setPg("home");
+        }
       } else {
         setCurrentUser(null);
         setProf(null);
       }
+      setAuthLoading(false);
       setLoaded(true);
     });
     return () => unsub();
@@ -345,15 +353,17 @@ function App() {
     const email = authUser.trim();
     const p = authPass;
     if (!email || !p) { setAuthError("Enter email and password."); return; }
+    setAuthLoading(true);
     try {
       await auth.signInWithEmailAndPassword(email, p);
-      setAuthUser(""); setAuthPass(""); setAuthError("");
-      setPg("home");
+      // onAuthStateChanged will fire, load profile, and set pg("home")
+      // authLoading stays true until that completes
     } catch(e) {
-      if (e.code==="auth/user-not-found"||e.code==="auth/invalid-credential") setAuthError("Account not found. Sign up instead?");
-      else if (e.code==="auth/wrong-password") setAuthError("Incorrect password.");
+      setAuthLoading(false);
+      if (e.code==="auth/user-not-found"||e.code==="auth/invalid-credential"||e.code==="auth/wrong-password") setAuthError("Incorrect email or password.");
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
-      else setAuthError("Login failed. Try again.");
+      else if (e.code==="auth/too-many-requests") setAuthError("Too many attempts. Try again later or reset your password.");
+      else setAuthError("Login failed: " + (e.message||"Try again."));
     }
   };
 
@@ -413,7 +423,8 @@ function App() {
       await auth.signInWithPopup(provider);
     } catch(e) {
       if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") { setAuthLoading(false); return; }
-      if (e.code==="auth/unauthorized-domain") setAuthError("Domain not authorized — add it in Firebase → Authentication → Settings → Authorized domains.");
+      if (e.code==="auth/account-exists-with-different-credential") setAuthError("This email is already registered with a password. Use email/password login instead.");
+      else if (e.code==="auth/unauthorized-domain") setAuthError("Domain not authorized — add it in Firebase → Authentication → Settings → Authorized domains.");
       else if (e.code==="auth/popup-blocked") setAuthError("Popup was blocked. Please allow popups for this site and try again.");
       else setAuthError("Google sign-in failed: " + (e.message||"Try again."));
     }
@@ -1113,7 +1124,7 @@ function App() {
 
             <button onClick={authMode==="login"?doLogin:doSignup} disabled={authLoading}
               style={{width:"100%",padding:"14px",background:authLoading?"#9CA3AF":S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:authLoading?"default":"pointer",fontFamily:S.f,boxShadow:authLoading?"none":S.shadowBlue,letterSpacing:"-0.2px"}}>
-              {authLoading?"Please wait...":authMode==="login"?"Log In →":"Continue →"}
+              {authLoading?(authMode==="login"?"Logging in...":"Please wait..."):(authMode==="login"?"Log In →":"Continue →")}
             </button>
 
             <div style={{textAlign:"center",marginTop:"20px",fontSize:"13px",color:S.mut}}>
