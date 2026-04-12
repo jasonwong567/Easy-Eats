@@ -67,6 +67,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -918,34 +919,32 @@ function App() {
     reader.readAsDataURL(file);
   };
 
-  // Share/copy results
-  const [shareText, setShareText] = useState("");
+  // Share results as image
+  const resultsRef = useRef(null);
   const shareResults = async (result, label) => {
-    const flagged = result.items.filter(i=>i.status!=="safe");
-    const lines = [
-      `🍽 Easy Eats — ${label}`,
-      `Status: ${result.overall==="safe"?"✅ SAFE":result.overall==="caution"?"⚠️ CAUTION":"🚫 DANGER"}`,
-      result.summary,
-    ];
-    if (flagged.length) {
-      lines.push("", "Flagged ingredients:");
-      flagged.forEach(i => lines.push(`  • ${i.ingredient} (${i.allergen||i.status}) — ${i.reason}`));
-    }
-    lines.push("", `${result.items.filter(i=>i.status==="safe").length} ingredients checked safe`);
-    const text = lines.join("\n");
-    if (navigator.share) {
-      try { await navigator.share({ title: `Easy Eats: ${label}`, text }); return; } catch(e) {}
-    }
-    // Fallback: clipboard
+    const el = resultsRef.current;
+    if (!el || !window.html2canvas) return;
+    setCopied("loading");
     try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text; ta.style.position="fixed"; ta.style.left="-9999px";
-      document.body.appendChild(ta); ta.select(); document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setCopied(true); if(window._copyTimer)clearTimeout(window._copyTimer); window._copyTimer=setTimeout(()=>setCopied(false),2500);
+      const canvas = await html2canvas(el, { backgroundColor: null, scale: 2, useCORS: true, logging: false });
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], "easy-eats-scan.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ title: `Easy Eats: ${label}`, files: [file] });
+            setCopied(true); if(window._copyTimer)clearTimeout(window._copyTimer); window._copyTimer=setTimeout(()=>setCopied(false),2500);
+            return;
+          } catch(e) { if (e.name==="AbortError") { setCopied(false); return; } }
+        }
+        // Fallback: download image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "easy-eats-scan.png";
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
+        setCopied(true); if(window._copyTimer)clearTimeout(window._copyTimer); window._copyTimer=setTimeout(()=>setCopied(false),2500);
+      }, "image/png");
+    } catch(e) { setCopied(false); }
   };
 
   // Keep a ref so Leaflet popup callback always sees latest nearbyResults (avoids stale closure)
@@ -1428,11 +1427,11 @@ function App() {
         </div>}
 
         {/* ═══ RESULTS ═══ */}
-        {pg==="results"&&res&&<div style={{animation:"fadeUp 0.3s ease both"}}>
+        {pg==="results"&&res&&<div ref={resultsRef} style={{animation:"fadeUp 0.3s ease both"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
             <button onClick={goBackFromResults} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:700,display:"flex",alignItems:"center",gap:"4px"}}>‹ Back</button>
-            <button onClick={()=>shareResults(res,resLabel)} style={{padding:"8px 16px",background:copied?S.gbg:S.card,border:`1.5px solid ${copied?S.gbrd:S.brd}`,borderRadius:"20px",color:copied?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
-              {copied?"✓ Copied":"📋 Share"}
+            <button onClick={()=>shareResults(res,resLabel)} disabled={copied==="loading"} style={{padding:"8px 16px",background:copied===true?S.gbg:S.card,border:`1.5px solid ${copied===true?S.gbrd:S.brd}`,borderRadius:"20px",color:copied===true?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
+              {copied==="loading"?"⏳ Saving…":copied===true?"✓ Shared":"📤 Share"}
             </button>
           </div>
           <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 16px",letterSpacing:"-0.3px"}}>{resLabel||"Scan Results"}</h2>
