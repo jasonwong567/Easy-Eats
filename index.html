@@ -478,9 +478,12 @@ function App() {
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
       try {
         await db.collection("users").doc(uid).set(newProf);
+        // Verify the write actually reached the server (offline persistence can silently queue writes)
+        const verify = await db.collection("users").doc(uid).get({ source: "server" });
+        if (!verify.exists) throw new Error("server-verify-failed");
       } catch(firestoreErr) {
         if (!pendingGoogleUid) { try { await auth.currentUser?.delete(); } catch(e) {} }
-        throw new Error("Failed to save your profile. Please try again.");
+        throw new Error("Profile couldn't be saved — check your internet connection and try again.");
       }
       // Cache immediately so onAuthStateChanged doesn't wipe state
       try { localStorage.setItem("ee_session", JSON.stringify({ email, prof: newProf })); } catch(e) {}
