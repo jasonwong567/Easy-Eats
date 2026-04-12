@@ -490,23 +490,6 @@ function App() {
     }
   };
 
-  const doGoogleSignIn = async () => {
-    setAuthError("");
-    setAuthLoading(true);
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
-      // onAuthStateChanged handles the rest — do NOT clear authLoading here
-      // so the "Signing in..." screen stays up while Firestore loads
-    } catch(e) {
-      setAuthLoading(false); // only clear on error
-      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") return;
-      if (e.code==="auth/account-exists-with-different-credential") setAuthError("This email is already registered with a password. Use email/password login instead.");
-      else if (e.code==="auth/unauthorized-domain") setAuthError("Domain not authorized — add it in Firebase → Authentication → Settings → Authorized domains.");
-      else if (e.code==="auth/popup-blocked") setAuthError("Popup was blocked. Please allow popups for this site and try again.");
-      else setAuthError("Google sign-in failed: " + (e.message||"Try again."));
-    }
-  };
 
   const doForgotPassword = async () => {
     setAuthError("");
@@ -539,19 +522,9 @@ function App() {
     if (!fbUser) return;
     setDeleteError("");
     try {
-      const providers = fbUser.providerData.map(p => p.providerId);
-      if (providers.includes("google.com")) {
-        // For Google: sign in fresh to get a new credential, then reauthenticate
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ login_hint: fbUser.email });
-        const result = await auth.signInWithPopup(provider);
-        const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-        await fbUser.reauthenticateWithCredential(credential);
-      } else {
-        if (!deletePassword) { setDeleteError("Enter your password to confirm."); return; }
-        const cred = firebase.auth.EmailAuthProvider.credential(fbUser.email, deletePassword);
-        await fbUser.reauthenticateWithCredential(cred);
-      }
+      if (!deletePassword) { setDeleteError("Enter your password to confirm."); return; }
+      const cred = firebase.auth.EmailAuthProvider.credential(fbUser.email, deletePassword);
+      await fbUser.reauthenticateWithCredential(cred);
       const uid = fbUser.uid;
       await db.collection("users").doc(uid).delete();
       await auth.currentUser.delete();
@@ -1189,16 +1162,6 @@ function App() {
           <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
             <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 20px",letterSpacing:"-0.3px"}}>{authMode==="login"?"Welcome back":"Create account"}</h2>
 
-            {/* Google Sign-In */}
-            <button onClick={doGoogleSignIn} disabled={authLoading} style={{width:"100%",padding:"13px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontWeight:600,cursor:authLoading?"default":"pointer",fontFamily:S.f,display:"flex",alignItems:"center",justifyContent:"center",gap:"10px",marginBottom:"16px",boxShadow:S.shadowSm,opacity:authLoading?0.6:1}}>
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style={{width:"18px",height:"18px"}} alt="" />
-              {authLoading?"Signing in...":"Continue with Google"}
-            </button>
-            <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px"}}>
-              <div style={{flex:1,height:"1px",background:S.brd}} />
-              <span style={{fontSize:"11px",color:S.mut,fontFamily:S.mono,fontWeight:600,letterSpacing:"1px"}}>OR</span>
-              <div style={{flex:1,height:"1px",background:S.brd}} />
-            </div>
 
             {authMode==="signup"&&<>
               <label style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",display:"block",marginBottom:"7px",fontFamily:S.mono,fontWeight:600}}>Display Name</label>
@@ -1879,16 +1842,8 @@ function App() {
             </button>:
             <div style={{padding:"18px",borderRadius:"14px",background:S.rbg,border:`1.5px solid ${S.rbrd}`}}>
               <div style={{fontSize:"13px",color:S.r,marginBottom:"12px",fontWeight:600}}>⚠️ This permanently deletes your account, allergens, and scan history.</div>
-              {(() => {
-                const fbUser = auth.currentUser;
-                const isGoogle = fbUser?.providerData?.some(p=>p.providerId==="google.com");
-                return isGoogle ? (
-                  <div style={{fontSize:"12px",color:S.mut,marginBottom:"12px"}}>You'll be asked to confirm with Google.</div>
-                ) : (
-                  <input type="password" value={deletePassword} onChange={e=>{setDeletePassword(e.target.value);setDeleteError("");}} placeholder="Enter your password to confirm"
-                    style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"10px"}} />
-                );
-              })()}
+              <input type="password" value={deletePassword} onChange={e=>{setDeletePassword(e.target.value);setDeleteError("");}} placeholder="Enter your password to confirm"
+                style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"10px"}} />
               {deleteError&&<div style={{fontSize:"12px",color:S.r,marginBottom:"10px",fontWeight:600}}>{deleteError}</div>}
               <div style={{display:"flex",gap:"8px"}}>
                 <button onClick={()=>{setConfirmDelete(false);setDeletePassword("");setDeleteError("");}} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
