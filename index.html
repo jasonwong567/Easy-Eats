@@ -256,6 +256,7 @@ function App() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
@@ -528,16 +529,18 @@ function App() {
     const fbUser = auth.currentUser;
     if (!fbUser) return;
     setDeleteError("");
+    if (!deletePassword) { setDeleteError("Enter your password to confirm."); return; }
+    setDeleting(true);
     try {
-      if (!deletePassword) { setDeleteError("Enter your password to confirm."); return; }
       const cred = firebase.auth.EmailAuthProvider.credential(fbUser.email, deletePassword);
       await fbUser.reauthenticateWithCredential(cred);
       const uid = fbUser.uid;
-      await db.collection("users").doc(uid).delete();
+      await db.collection("users").doc(uid).delete().catch(()=>{});
       await auth.currentUser.delete();
       // onAuthStateChanged will fire with null and clean up state
-      setConfirmDelete(false); setDeletePassword(""); setDeleteError("");
+      setConfirmDelete(false); setDeletePassword(""); setDeleteError(""); setDeleting(false);
     } catch(e) {
+      setDeleting(false);
       if (e.code==="auth/wrong-password"||e.code==="auth/invalid-credential") setDeleteError("Incorrect password.");
       else if (e.code==="auth/requires-recent-login") setDeleteError("Session expired. Log out and back in, then try again.");
       else if (e.code==="auth/too-many-requests") setDeleteError("Too many attempts. Wait a few minutes and try again.");
@@ -1875,11 +1878,12 @@ function App() {
             <div style={{padding:"18px",borderRadius:"14px",background:S.rbg,border:`1.5px solid ${S.rbrd}`}}>
               <div style={{fontSize:"13px",color:S.r,marginBottom:"12px",fontWeight:600}}>⚠️ This permanently deletes your account, allergens, and scan history.</div>
               <input type="password" value={deletePassword} onChange={e=>{setDeletePassword(e.target.value);setDeleteError("");}} placeholder="Enter your password to confirm"
-                style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"10px"}} />
-              {deleteError&&<div style={{fontSize:"12px",color:S.r,marginBottom:"10px",fontWeight:600}}>{deleteError}</div>}
+                style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"6px"}} />
+              <button onClick={async()=>{if(auth.currentUser?.email){await auth.sendPasswordResetEmail(auth.currentUser.email);setDeleteError("Password reset email sent — check your inbox.");}}} style={{background:"none",border:"none",color:S.p,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600,padding:"0 0 10px",display:"block"}}>Forgot password? Send reset email</button>
+              {deleteError&&<div style={{fontSize:"12px",color:deleteError.includes("sent")?S.g:S.r,marginBottom:"10px",fontWeight:600}}>{deleteError}</div>}
               <div style={{display:"flex",gap:"8px"}}>
-                <button onClick={()=>{setConfirmDelete(false);setDeletePassword("");setDeleteError("");}} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
-                <button onClick={doDeleteAccount} style={{flex:1,padding:"11px",background:S.r,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Yes, Delete</button>
+                <button onClick={()=>{setConfirmDelete(false);setDeletePassword("");setDeleteError("");setDeleting(false);}} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
+                <button onClick={doDeleteAccount} disabled={deleting} style={{flex:1,padding:"11px",background:S.r,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:deleting?"not-allowed":"pointer",fontFamily:S.f,opacity:deleting?0.7:1}}>{deleting?"Deleting…":"Yes, Delete"}</button>
               </div>
             </div>
           }
