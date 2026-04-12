@@ -294,6 +294,24 @@ function App() {
   const mapInstanceRef = useRef(null);
 
   // Restore session via Firebase Auth
+  // Step 1: load from localStorage cache instantly so app shows immediately
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("ee_session");
+      if (cached) {
+        const { email, prof: cachedProf } = JSON.parse(cached);
+        if (email && cachedProf) {
+          setCurrentUser(email);
+          setProf(cachedProf);
+          setEmergencyContact(cachedProf.emergencyContact||"");
+          setEmergencyPhone(cachedProf.emergencyPhone||"");
+          setLoaded(true); // show app immediately from cache
+        }
+      }
+    } catch(e) {}
+  }, []);
+
+  // Step 2: confirm with Firebase in background, update if changed, clear if session expired
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (fbUser) => {
       if (fbUser) {
@@ -305,9 +323,13 @@ function App() {
             setProf(data);
             setEmergencyContact(data.emergencyContact||"");
             setEmergencyPhone(data.emergencyPhone||"");
-            setPg("home");
+            // Update cache with fresh data
+            try { localStorage.setItem("ee_session", JSON.stringify({ email: fbUser.email, prof: data })); } catch(e) {}
+            setPg(pg => pg === "home" ? "home" : pg); // don't override if user navigated
           } else {
-            // Auth account exists but no Firestore profile — needs allergen setup
+            // No Firestore profile — needs allergen setup
+            localStorage.removeItem("ee_session");
+            setCurrentUser(null); setProf(null);
             setPendingGoogleUid(fbUser.uid);
             setPendingGoogleEmail(fbUser.email);
             setAuthName(fbUser.displayName||"");
@@ -315,21 +337,16 @@ function App() {
             setAuthLoading(false);
           }
         } catch(e) {
-          // Firestore failed — check if this is an existing session or new signup
           console.error("Firestore load error:", e);
-          // If they have a display name from a previous session, try to restore
-          // Otherwise send to allergen setup so no one skips it
-          setPendingGoogleUid(fbUser.uid);
-          setAuthName(fbUser.displayName||fbUser.email?.split("@")[0]||"");
-          setAuthMode("setupAllergens");
+          // If cache got us in, stay in — just log the error
+          if (!auth.currentUser) { localStorage.removeItem("ee_session"); setCurrentUser(null); setProf(null); }
         }
       } else {
-        setCurrentUser(null);
-        setProf(null);
-        setPg("home");
-        setAuthMode("login");
-        setPendingGoogleUid(null);
-        setPendingGoogleEmail(null);
+        // Session expired or logged out — clear cache
+        localStorage.removeItem("ee_session");
+        setCurrentUser(null); setProf(null);
+        setPg("home"); setAuthMode("login");
+        setPendingGoogleUid(null); setPendingGoogleEmail(null);
       }
       setAuthLoading(false);
       setLoaded(true);
@@ -375,6 +392,7 @@ function App() {
     const newProf = { ...profRef.current, ...updates };
     setProf(newProf);
     db.collection("users").doc(fbUser.uid).update(updates).catch(()=>{});
+    try { localStorage.setItem("ee_session", JSON.stringify({ email: fbUser.email, prof: newProf })); } catch(e) {}
   };
 
   // Auth actions
@@ -481,6 +499,7 @@ function App() {
   };
 
   const doLogout = async () => {
+    localStorage.removeItem("ee_session");
     await auth.signOut();
     setCurrentUser(null); setProf(null); setPg("home"); setAuthMode("login");
     setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthError("");
