@@ -1343,6 +1343,10 @@ function App() {
             ))}
           </>}
 
+          {viewHist.ingredients&&viewHist.ingredients.length>20&&<details style={{marginTop:"16px"}}>
+            <summary style={{fontSize:"11px",color:S.mut,cursor:"pointer",fontWeight:700,letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:S.mono}}>View full ingredient list</summary>
+            <div style={{marginTop:"10px",padding:"14px 16px",borderRadius:"12px",background:S.card,border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,lineHeight:1.75,fontFamily:S.mono,boxShadow:S.shadowSm}}>{viewHist.ingredients}</div>
+          </details>}
           </div>{/* end histDetail share capture */}
         </div>);})()}
 
