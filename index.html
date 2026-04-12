@@ -922,12 +922,16 @@ function App() {
 
   // Share results as image
   const resultsRef = useRef(null);
-  const shareResults = async (result, label) => {
-    const el = resultsRef.current;
+  const histDetailRef = useRef(null);
+  const shareResults = async (result, label, elemOverride) => {
+    const el = elemOverride || resultsRef.current;
     if (!el || !window.html2canvas) return;
     setCopied("loading");
     try {
+      const details = el.querySelectorAll("details");
+      details.forEach(d => { d.open = true; });
       const canvas = await html2canvas(el, { backgroundColor: "#F5F7FF", scale: 2, useCORS: true, logging: false });
+      details.forEach(d => { d.open = false; });
       canvas.toBlob(async (blob) => {
         const file = new File([blob], "easy-eats-scan.png", { type: "image/png" });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1298,8 +1302,14 @@ function App() {
         {pg==="histDetail"&&viewHist&&(()=>{const lr=liveResult(viewHist);const resultChanged=viewHist.ingredients&&lr.overall!==viewHist.overall;return(<div style={{animation:"fadeUp 0.3s ease both"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
             <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0,fontWeight:600}}>← Back</button>
-            <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"8px 16px",background:S.pGrad,border:"none",borderRadius:"10px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>↺ Rescan</button>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>shareResults(lr, viewHist.label, histDetailRef.current)} disabled={copied==="loading"} style={{padding:"8px 16px",background:copied===true?S.gbg:S.card,border:`1.5px solid ${copied===true?S.gbrd:S.brd}`,borderRadius:"10px",color:copied===true?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
+                {copied==="loading"?"⏳":"📤 Share"}
+              </button>
+              <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"8px 16px",background:S.pGrad,border:"none",borderRadius:"10px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>↺ Rescan</button>
+            </div>
           </div>
+          <div ref={histDetailRef} style={{background:S.bg,borderRadius:"16px",padding:"4px 0"}}>
           <h2 style={{fontFamily:S.sf,fontSize:"24px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>{viewHist.label}</h2>
           <div style={{fontSize:"11px",color:S.mut,marginBottom:"12px",fontFamily:S.mono}}>{new Date(viewHist.date).toLocaleString()}</div>
           {resultChanged&&<div style={{background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"12px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:S.y,fontWeight:500}}>⚠️ Result differs from original — allergen profile has changed</div>}
@@ -1333,6 +1343,7 @@ function App() {
             ))}
           </>}
 
+          </div>{/* end histDetail share capture */}
         </div>);})()}
 
         {/* ═══ SCANNER ═══ */}
