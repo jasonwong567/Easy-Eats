@@ -94,7 +94,8 @@
         "name": "Side Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.mcdonalds.com/us/en-us/about-our-food/nutrition-calculator.html"
   },
   {
     "id": "chickfila",
@@ -174,7 +175,8 @@
           "mustard"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.chick-fil-a.com/nutrition-allergens"
   },
   {
     "id": "chipotle",
@@ -254,7 +256,8 @@
         "name": "Chips",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.chipotle.com/nutrition-calculator"
   },
   {
     "id": "subway",
@@ -333,7 +336,8 @@
         "name": "Salad (no bread)",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.subway.com/en-US/MenuNutrition/Nutrition/NutritionGrid"
   },
   {
     "id": "tacobell",
@@ -400,7 +404,8 @@
         "name": "Black Beans & Rice",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.tacobell.com/nutrition/info"
   },
   {
     "id": "wendys",
@@ -473,7 +478,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.wendys.com/nutrition"
   },
   {
     "id": "starbucks",
@@ -544,7 +550,8 @@
         "name": "Banana",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.starbucks.com/menu"
   },
   {
     "id": "dunkin",
@@ -615,7 +622,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.dunkindonuts.com/en/food-drinks/allergen-information"
   },
   {
     "id": "panera",
@@ -678,7 +686,8 @@
         "name": "Steel Cut Oatmeal",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.panerabread.com/en-us/articles/nutrition-and-allergens.html"
   },
   {
     "id": "fiveguys",
@@ -748,7 +757,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.fiveguys.com/fans/nutrition"
   },
   {
     "id": "burgerking",
@@ -823,7 +833,8 @@
         "name": "Garden Side Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.bk.com/nutrition/allergens"
   },
   {
     "id": "popeyes",
@@ -896,7 +907,8 @@
         "name": "Corn on the Cob",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.popeyes.com/faq/nutrition"
   },
   {
     "id": "dominos",
@@ -973,7 +985,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.dominos.com/en/pages/content/nutritional/"
   },
   {
     "id": "pizzahut",
@@ -1043,7 +1056,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.pizzahut.com/nutritional-info"
   },
   {
     "id": "papajohns",
@@ -1116,7 +1130,8 @@
           "eggs"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.papajohns.com/company/nutrition-and-allergens.html"
   },
   {
     "id": "pandaexpress",
@@ -1197,7 +1212,8 @@
           "sesame"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.pandaexpress.com/nutrition"
   },
   {
     "id": "olivegarden",
@@ -1268,7 +1284,8 @@
           "eggs"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.olivegarden.com/nutrition"
   },
   {
     "id": "applebees",
@@ -1340,7 +1357,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.applebees.com/en/food/nutrition"
   },
   {
     "id": "chillis",
@@ -1405,7 +1423,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.chilis.com/content/dam/chilis/pdf/ChilisAllergenMenu.pdf"
   },
   {
     "id": "kfc",
@@ -1475,7 +1494,8 @@
         "name": "Green Beans",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.kfc.com/nutrition"
   },
   {
     "id": "sonic",
@@ -1542,7 +1562,8 @@
         "name": "Slush (plain)",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.sonicdrivein.com/menu/nutrition"
   },
   {
     "id": "jackinthebox",
@@ -1608,7 +1629,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.jackinthebox.com/nutrition"
   },
   {
     "id": "innout",
@@ -1663,7 +1685,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.in-n-out.com/nutrition"
   },
   {
     "id": "shakeshack",
@@ -1725,7 +1748,8 @@
         "name": "Lemonade",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.shakeshack.com/food-safety/"
   },
   {
     "id": "whataburger",
@@ -1791,7 +1815,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://whataburger.com/food/nutrition"
   },
   {
     "id": "arbys",
@@ -1855,7 +1880,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://arbys.com/nutrition"
   },
   {
     "id": "jerseymmikes",
@@ -1921,7 +1947,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.jerseymikes.com/menu/nutrition-info"
   },
   {
     "id": "jimmyjohns",
@@ -1981,7 +2008,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.jimmyjohns.com/menu/nutritional-info/"
   },
   {
     "id": "firehouse",
@@ -2048,7 +2076,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.firehousesubs.com/menu/nutritional-info/"
   },
   {
     "id": "sweetgreen",
@@ -2110,7 +2139,8 @@
           "wheat"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.sweetgreen.com/menu"
   },
   {
     "id": "cava",
@@ -2168,7 +2198,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://cava.com/menu"
   },
   {
     "id": "wingstop",
@@ -2226,7 +2257,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.wingstop.com/nutrition"
   },
   {
     "id": "buffalowild",
@@ -2283,7 +2315,8 @@
         "name": "Corn Tortilla Chips",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.buffalowildwings.com/en/food/nutrition/"
   },
   {
     "id": "raisingcanes",
@@ -2339,7 +2372,8 @@
         "name": "Lemonade",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.raisingcanes.com/nutrition"
   },
   {
     "id": "dairyqueen",
@@ -2405,7 +2439,8 @@
         "name": "Side Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.dairyqueen.com/en-us/nutrition/"
   },
   {
     "id": "coldstone",
@@ -2470,7 +2505,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.coldstonecreamery.com/nutrition"
   },
   {
     "id": "baskinrobbins",
@@ -2534,7 +2570,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.baskinrobbins.com/en/nutritional-info.html"
   },
   {
     "id": "jamba",
@@ -2586,7 +2623,8 @@
         "name": "Greens 'n Ginger",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.jamba.com/nutrition"
   },
   {
     "id": "smoothieking",
@@ -2640,7 +2678,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.smoothieking.com/menu/nutrition"
   },
   {
     "id": "noodles",
@@ -2709,7 +2748,8 @@
           "sesame"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.noodles.com/nutrition/"
   },
   {
     "id": "potbelly",
@@ -2771,7 +2811,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.potbelly.com/pages/nutrition-info"
   },
   {
     "id": "wafflehouse",
@@ -2832,7 +2873,8 @@
           "wheat"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.wafflehouse.com/nutrition/"
   },
   {
     "id": "ihop",
@@ -2894,7 +2936,8 @@
         "name": "Bacon",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.ihop.com/en/menu-and-nutrition"
   },
   {
     "id": "dennys",
@@ -2958,7 +3001,8 @@
           "sesame"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.dennys.com/food/nutrition/"
   },
   {
     "id": "crackerbarrel",
@@ -3018,7 +3062,8 @@
         "name": "Fried Apples",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.crackerbarrel.com/menu-nutrition/"
   },
   {
     "id": "freddys",
@@ -3086,7 +3131,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.freddys.com/nutrition"
   },
   {
     "id": "culvers",
@@ -3147,7 +3193,8 @@
         "name": "Side Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.culvers.com/nutrition-and-allergens/nutrition"
   },
   {
     "id": "qdoba",
@@ -3207,7 +3254,8 @@
         "name": "Chips",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.qdoba.com/menu/nutrition"
   },
   {
     "id": "elpollo",
@@ -3268,7 +3316,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.elpolloloco.com/nutrition/"
   },
   {
     "id": "moes",
@@ -3331,7 +3380,8 @@
         "name": "Tortilla Chips",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.moes.com/nutrition/"
   },
   {
     "id": "zaxbys",
@@ -3395,7 +3445,8 @@
         "name": "Garden Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.zaxbys.com/menu/nutrition/"
   },
   {
     "id": "cookout",
@@ -3457,7 +3508,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://cookout.com/nutrition/"
   },
   {
     "id": "wawa",
@@ -3524,7 +3576,8 @@
           "wheat"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.wawa.com/fresh-food/nutrition-and-ingredient-information"
   },
   {
     "id": "boba",
@@ -3574,7 +3627,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.kungfutea.com/nutrition"
   },
   {
     "id": "modpizza",
@@ -3637,7 +3691,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://modpizza.com/nutrition/"
   },
   {
     "id": "blaze",
@@ -3700,7 +3755,8 @@
           "soy"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://blazepizza.com/nutrition/"
   },
   {
     "id": "tropical",
@@ -3757,7 +3813,8 @@
           "milk"
         ]
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.tropicalsmoothiecafe.com/menu/nutrition/"
   },
   {
     "id": "portillos",
@@ -3819,6 +3876,7 @@
         "name": "Garden Salad",
         "a": []
       }
-    ]
+    ],
+    "nutritionUrl": "https://www.portillos.com/nutrition/"
   }
 ]
