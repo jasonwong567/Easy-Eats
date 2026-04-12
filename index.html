@@ -448,14 +448,16 @@ function App() {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       await auth.signInWithPopup(provider);
+      // onAuthStateChanged handles the rest — do NOT clear authLoading here
+      // so the "Signing in..." screen stays up while Firestore loads
     } catch(e) {
-      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") { setAuthLoading(false); return; }
+      setAuthLoading(false); // only clear on error
+      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") return;
       if (e.code==="auth/account-exists-with-different-credential") setAuthError("This email is already registered with a password. Use email/password login instead.");
       else if (e.code==="auth/unauthorized-domain") setAuthError("Domain not authorized — add it in Firebase → Authentication → Settings → Authorized domains.");
       else if (e.code==="auth/popup-blocked") setAuthError("Popup was blocked. Please allow popups for this site and try again.");
       else setAuthError("Google sign-in failed: " + (e.message||"Try again."));
     }
-    setAuthLoading(false);
   };
 
   const doForgotPassword = async () => {
