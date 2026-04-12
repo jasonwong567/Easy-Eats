@@ -1899,7 +1899,16 @@ function App() {
               <div style={{fontSize:"13px",color:S.r,marginBottom:"12px",fontWeight:600}}>⚠️ This permanently deletes your account, allergens, and scan history.</div>
               <input type="password" value={deletePassword} onChange={e=>{setDeletePassword(e.target.value);setDeleteError("");}} placeholder="Enter your password to confirm"
                 style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"6px"}} />
-              <button onClick={async()=>{if(auth.currentUser?.email){await auth.sendPasswordResetEmail(auth.currentUser.email);setDeleteError("Password reset email sent — check your inbox.");}}} style={{background:"none",border:"none",color:S.p,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600,padding:"0 0 10px",display:"block"}}>Forgot password? Send reset email</button>
+              <button onClick={async()=>{
+                const email = auth.currentUser?.email;
+                if (!email) { setDeleteError("No email found — try logging out and back in."); return; }
+                try {
+                  await auth.sendPasswordResetEmail(email);
+                  setDeleteError("✓ Reset email sent to " + email + " — check your inbox and spam folder.");
+                } catch(e) {
+                  setDeleteError("Couldn't send reset email: " + (e.message||"Try again."));
+                }
+              }} style={{background:"none",border:"none",color:S.p,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600,padding:"0 0 10px",display:"block"}}>Forgot password? Send reset email</button>
               {deleteError&&<div style={{fontSize:"12px",color:deleteError.includes("sent")?S.g:S.r,marginBottom:"10px",fontWeight:600}}>{deleteError}</div>}
               <div style={{display:"flex",gap:"8px"}}>
                 <button onClick={()=>{setConfirmDelete(false);setDeletePassword("");setDeleteError("");setDeleting(false);}} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
