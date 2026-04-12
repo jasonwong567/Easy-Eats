@@ -8,6 +8,10 @@
   <meta name="theme-color" content="#FAFAFA">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #EEF2FF; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -329,15 +333,30 @@ function App() {
     return () => unsub();
   }, []);
 
-  // Load external data files
+  // Load external data files — serve from localStorage cache for instant load, refresh in background
   useEffect(() => {
-    fetch("chains.json").then(r=>r.json()).then(data => { chainsRef.current = data; setChains(data); }).catch(()=>{});
-    fetch("allergens.json").then(r=>r.json()).then(data => {
+    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+    const loadCached = (key, url, onData) => {
+      try {
+        const cached = localStorage.getItem("ee_cache_" + key);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) { onData(data); }
+        }
+      } catch(e) {}
+      // Always fetch fresh in background to keep cache warm
+      fetch(url).then(r=>r.json()).then(data => {
+        onData(data);
+        try { localStorage.setItem("ee_cache_" + key, JSON.stringify({ data, ts: Date.now() })); } catch(e) {}
+      }).catch(()=>{});
+    };
+    loadCached("chains", "chains.json", data => { chainsRef.current = data; setChains(data); });
+    loadCached("allergens", "allergens.json", data => {
       ALRef.current = data.AL; setAL(data.AL);
       FPRef.current = data.FP; setFP(data.FP);
       AMBRef.current = data.AMB; setAMB(data.AMB);
-    }).catch(()=>{});
-    fetch("cities.json").then(r=>r.json()).then(data => { CITIESRef.current = data; setCITIES(data); }).catch(()=>{});
+    });
+    loadCached("cities", "cities.json", data => { CITIESRef.current = data; setCITIES(data); });
   }, []);
 
   // Save user profile - use refs to avoid stale closures
