@@ -282,6 +282,9 @@ function App() {
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState([]);
   const [foodLoading, setFoodLoading] = useState(false);
+  const [foodLoadingMore, setFoodLoadingMore] = useState(false);
+  const [foodPage, setFoodPage] = useState(1);
+  const [foodHasMore, setFoodHasMore] = useState(false);
   const [foodError, setFoodError] = useState("");
   const [foodNoIngredients, setFoodNoIngredients] = useState("");
 
@@ -289,6 +292,9 @@ function App() {
   const [nutQuery, setNutQuery] = useState("");
   const [nutResults, setNutResults] = useState([]);
   const [nutLoading, setNutLoading] = useState(false);
+  const [nutLoadingMore, setNutLoadingMore] = useState(false);
+  const [nutPage, setNutPage] = useState(1);
+  const [nutHasMore, setNutHasMore] = useState(false);
   const [nutError, setNutError] = useState("");
   const [nutSelected, setNutSelected] = useState(null);
   const [nutDetail, setNutDetail] = useState(null);
@@ -1033,39 +1039,54 @@ function App() {
   }, [nutSelected]);
 
   // Nutrition search via USDA FoodData Central
+  const mapNutHits = (foods) => (foods || []).map(f => {
+    const nutMap = {};
+    (f.foodNutrients || []).forEach(n => {
+      if (n.nutrientId === 1008) nutMap.ENERC_KCAL = n.value;
+      else if (n.nutrientId === 1003) nutMap.PROCNT = n.value;
+      else if (n.nutrientId === 1004) nutMap.FAT = n.value;
+      else if (n.nutrientId === 1005) nutMap.CHOCDF = n.value;
+      else if (n.nutrientId === 1079) nutMap.FIBTG = n.value;
+    });
+    return { label: f.description || "", brand: f.brandOwner || null, ingredients: f.ingredients || null, nutrients: nutMap };
+  }).filter(h => h.label.trim());
+
   const searchNutrition = async () => {
     const q = nutQuery.trim();
     if (!q) return;
-    setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null);
+    setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null); setNutPage(1); setNutHasMore(false);
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&dataType=Branded`
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const hits = (data.foods || []).map(f => {
-        // Map USDA foodNutrients array to the format the nutrition card expects
-        const nutMap = {};
-        (f.foodNutrients || []).forEach(n => {
-          if (n.nutrientId === 1008) nutMap.ENERC_KCAL = n.value;
-          else if (n.nutrientId === 1003) nutMap.PROCNT = n.value;
-          else if (n.nutrientId === 1004) nutMap.FAT = n.value;
-          else if (n.nutrientId === 1005) nutMap.CHOCDF = n.value;
-          else if (n.nutrientId === 1079) nutMap.FIBTG = n.value;
-        });
-        return {
-          label: f.description || "",
-          brand: f.brandOwner || null,
-          ingredients: f.ingredients || null,
-          nutrients: nutMap,
-        };
-      }).filter(h => h.label.trim()).slice(0, 8);
+      const hits = mapNutHits(data.foods);
       if (hits.length === 0) setNutError("No results found. Try a different search term.");
-      else setNutResults(hits);
+      else { setNutResults(hits); setNutHasMore((data.totalHits || 0) > 8); }
     } catch(e) {
       setNutError("Search failed. Check your connection and try again.");
     }
     setNutLoading(false);
+  };
+
+  const loadMoreNut = async () => {
+    const q = nutQuery.trim();
+    if (!q) return;
+    const nextPage = nutPage + 1;
+    setNutLoadingMore(true);
+    try {
+      const resp = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=${nextPage}&dataType=Branded`
+      );
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const hits = mapNutHits(data.foods);
+      setNutResults(prev => [...prev, ...hits]);
+      setNutPage(nextPage);
+      setNutHasMore((data.totalHits || 0) > nextPage * 8);
+    } catch(e) {}
+    setNutLoadingMore(false);
   };
 
   // Food search via USDA FoodData Central (branded foods with ingredient lists)
@@ -1075,10 +1096,12 @@ function App() {
     setFoodLoading(true);
     setFoodError("");
     setFoodResults([]);
+    setFoodPage(1);
+    setFoodHasMore(false);
     setTxt("");
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&dataType=Branded`
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -1092,12 +1115,38 @@ function App() {
       if (hits.length === 0) {
         setFoodError("No results found. Try a different search term.");
       } else {
-        setFoodResults(hits.slice(0, 6));
+        setFoodResults(hits);
+        setFoodHasMore((data.totalHits || 0) > 8);
       }
     } catch(e) {
       setFoodError("Search failed. Check your connection and try again.");
     }
     setFoodLoading(false);
+  };
+
+  const loadMoreFood = async () => {
+    const q = foodQuery.trim();
+    if (!q) return;
+    const nextPage = foodPage + 1;
+    setFoodLoadingMore(true);
+    try {
+      const resp = await fetch(
+        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=${nextPage}&dataType=Branded`
+      );
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const hits = (data.foods || [])
+        .map(f => ({
+          label: f.description || "",
+          brand: f.brandOwner || null,
+          ingredients: f.ingredients || null,
+        }))
+        .filter(h => h.label.trim());
+      setFoodResults(prev => [...prev, ...hits]);
+      setFoodPage(nextPage);
+      setFoodHasMore((data.totalHits || 0) > nextPage * 8);
+    } catch(e) {}
+    setFoodLoadingMore(false);
   };
 
   const pickFoodResult = (item) => {
@@ -1456,6 +1505,10 @@ function App() {
                   <span style={{fontSize:"12px",color:S.p,fontWeight:700,flexShrink:0}}>Scan →</span>
                 </button>
               ))}
+              {foodHasMore&&<button onClick={loadMoreFood} disabled={foodLoadingMore}
+                style={{marginTop:"4px",padding:"11px",background:"none",border:`1.5px dashed ${S.brd}`,borderRadius:"12px",color:S.p,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
+                {foodLoadingMore?"Loading…":"Show more results"}
+              </button>}
             </div>}
             {!foodLoading&&foodResults.length===0&&!foodError&&<div style={{padding:"28px 20px",textAlign:"center",background:S.card,borderRadius:"16px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
               <div style={{fontSize:"32px",marginBottom:"8px"}}>🔍</div>
@@ -1660,6 +1713,10 @@ function App() {
                   </button>
                 );
               })}
+              {nutHasMore&&<button onClick={loadMoreNut} disabled={nutLoadingMore}
+                style={{marginTop:"4px",padding:"11px",background:"none",border:`1.5px dashed ${S.brd}`,borderRadius:"14px",color:S.p,fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>
+                {nutLoadingMore?"Loading…":"Show more results"}
+              </button>}
             </div>
           ) : !nutLoading&&(
             <div style={{padding:"40px 24px",textAlign:"center",background:S.card,borderRadius:"18px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
