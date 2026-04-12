@@ -1,191 +1,82 @@
-# 🍽 Easy Eats — Allergen Safety Assistant
+# Easy Eats
 
-A full-featured food allergen safety web application that helps users identify allergens in food products, find safe restaurant options, and manage their dietary restrictions.
-
-**[Live Demo →](https://YOUR_USERNAME.github.io/easy-eats/)**
-
-![Easy Eats Screenshot](https://img.shields.io/badge/React-18-blue?logo=react) ![License](https://img.shields.io/badge/license-MIT-green)
+A web app that helps people with food allergies check ingredients, find safe menu items at restaurants, and keep track of what they've scanned.
 
 ---
 
-## Features
+## What It Does
 
-### 🔐 Multi-User Authentication
-- Account creation with username/password
-- Persistent login sessions via localStorage
-- Profile management with editable allergen preferences
-- Account deletion with confirmation
+### Ingredient Scanner
 
-### 🔬 Ingredient Scanner
-- Paste ingredient lists from any food package for instant analysis
-- Detects **200+ allergen variants** including hidden derivatives (e.g., "casein" → dairy, "lecithin" → soy)
-- **False-positive protection** — won't flag "coconut cream" as dairy or "eggplant" as eggs
-- **Ambiguous ingredient detection** — flags items like "natural flavors" or "spices" that may contain allergens
-- Color-coded results: 🔴 Danger / 🟡 Caution / 🟢 Safe
-- **19 pre-loaded products** for quick scanning (Cheetos, Oreos, Lay's, etc.)
+The core feature. You can check food ingredients three ways:
 
-### 📷 Photo Upload
-- Upload ingredient label photos for reference while typing ingredients
+- **Barcode scan** — point your camera at a product barcode and it looks up the ingredients automatically
+- **Food name search** — type a food name and it pulls up ingredients from the database
+- **Manual entry** — paste or type an ingredient list yourself, with a field to name the item
 
-### 📍 Restaurant Dining Guide
-- **56 chain restaurants** with real menu items and allergen data
-- **OpenStreetMap integration** — searches for real restaurant locations near any US address using free APIs (Nominatim + Overpass)
-- Falls back to simulated locations when API is unavailable
-- Menu items split into "Safe for You" vs "Contains Your Allergens"
-- **50+ preset cities** with autocomplete dropdown
+Once ingredients are submitted, the app checks each one against your allergen profile and returns one of three results per ingredient:
 
-### ✨ Smart Alternatives
-- When a product is flagged, suggests **category-matched safe alternatives**
-- Scan Oreos → suggests other safe cookies, not random items
-- Clickable alternatives with full navigation stack (back button returns to previous scan)
+- **Danger** — directly contains one of your allergens
+- **Caution** — ingredient is ambiguous and may contain allergen derivatives (e.g. "natural flavors", "spices")
+- **Safe** — no allergen match found
 
-### 📋 Share Results
-- Copy scan results to clipboard in formatted text
+The scanner catches hidden allergen names — for example, "casein" and "whey" are both flagged for dairy, "arachis oil" for peanuts, "albumin" for eggs, and so on. It also has false-positive protection so things like "eggplant" don't get flagged as eggs and "coconut milk" doesn't get flagged as dairy.
 
-### 🚨 Emergency Allergen Card
-- Shareable card showing your name, allergens, and emergency contact
-- Designed to show restaurant staff or anyone preparing your food
+**Allergens tracked:** Dairy, Peanuts, Tree Nuts, Eggs, Wheat/Gluten, Soy, Fish, Shellfish, Sesame, Mustard, Celery, Sulfites. You can also add your own custom allergens.
 
-### 📊 Dashboard & History
-- Personal dashboard with scan statistics
-- Full scan history with clickable detail views
-- Persistent data across sessions
+After scanning, results can be shared as an image (uses the native share sheet on mobile).
 
 ---
 
-## Tech Stack
+### Restaurant Dining Guide
 
-- **React 18** — UI framework (loaded via CDN, no build step required)
-- **Babel Standalone** — JSX transpilation in-browser
-- **OpenStreetMap / Nominatim** — Free geocoding API (no key required)
-- **Overpass API** — Free restaurant location data (no key required)
-- **localStorage** — Client-side data persistence
-- **GitHub Pages** — Static hosting
+Covers 58 chain restaurants. For each one:
 
----
+- Shows which menu items are safe for you vs. which contain your allergens
+- Links to the restaurant's official nutrition/allergen page
+- Has a map that searches for real nearby locations using OpenStreetMap (no API key needed)
+- Includes a city search with autocomplete
 
-## Allergens Tracked
-
-| Allergen | Hidden Names Detected |
-|----------|----------------------|
-| 🥛 Dairy / Milk | casein, whey, lactose, ghee, lactalbumin, buttermilk, milkfat... |
-| 🥜 Peanuts | arachis oil, groundnut, mandelonas, peanut protein... |
-| 🌰 Tree Nuts | praline, marzipan, nougat, gianduja, amaretto, nutella... |
-| 🥚 Eggs | albumin, lysozyme, ovalbumin, ovomucin, livetin, meringue... |
-| 🌾 Wheat / Gluten | semolina, spelt, kamut, seitan, malt extract, triticale... |
-| 🫘 Soy | edamame, tempeh, shoyu, tamari, textured vegetable protein... |
-| 🐟 Fish | surimi, fish sauce, worcestershire, caesar dressing... |
-| 🦐 Shellfish | calamari, escargot, crustacean, mollusk, shrimp paste... |
-| 🫓 Sesame | tahini, halvah, gingelly oil, benne seeds... |
-| 🟡 Mustard | dijon, mustard flour, mustard oil... |
-| 🥬 Celery | celeriac, celery salt, celery seed... |
-| 🍷 Sulfites | sulfur dioxide, sodium metabisulfite... |
+Chains include: McDonald's, Chick-fil-A, Chipotle, Subway, Taco Bell, Wendy's, Starbucks, Dunkin', Panera, Five Guys, Burger King, Popeyes, Domino's, Pizza Hut, Papa John's, Panda Express, Olive Garden, Applebee's, Chili's, KFC, Sonic, Jack in the Box, In-N-Out, Shake Shack, Whataburger, Arby's, Jersey Mike's, Jimmy John's, Firehouse Subs, Sweetgreen, CAVA, Wingstop, Buffalo Wild Wings, Raising Cane's, Dairy Queen, Cold Stone, Baskin-Robbins, Jamba, Smoothie King, Noodles & Co., Potbelly, Waffle House, IHOP, Denny's, Cracker Barrel, Freddy's, Culver's, Qdoba, El Pollo Loco, Moe's, Zaxby's, Cook Out, Wawa, Kung Fu Tea, Mod Pizza, Blaze Pizza, Tropical Smoothie Cafe, Portillo's
 
 ---
 
-## Restaurant Chains Included
+### Nutrition Lookup
 
-McDonald's, Burger King, Wendy's, Chick-fil-A, KFC, Popeyes, Taco Bell, Chipotle, Subway, Starbucks, Dunkin', Panera Bread, Five Guys, Domino's, Pizza Hut, Papa John's, Panda Express, Olive Garden, Applebee's, Chili's, Sonic, Jack in the Box, In-N-Out, Shake Shack, Whataburger, Arby's, Jersey Mike's, Jimmy John's, Firehouse Subs, Sweetgreen, CAVA, Wingstop, Buffalo Wild Wings, Raising Cane's, Dairy Queen, Cold Stone Creamery, Baskin-Robbins, Jamba, Smoothie King, Noodles & Company, Potbelly, Waffle House, IHOP, Denny's, Cracker Barrel, Freddy's, Culver's, Qdoba, El Pollo Loco, Moe's Southwest Grill, Zaxby's, Cook Out, Wawa, Kung Fu Tea, Mod Pizza, Blaze Pizza, Tropical Smoothie, Portillo's
-
----
-
-## Setup & Deployment
-
-### Option 1: GitHub Pages (Recommended)
-
-1. **Fork or clone this repo**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/easy-eats.git
-   cd easy-eats
-   ```
-
-2. **Push to GitHub**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
-
-3. **Enable GitHub Pages**
-   - Go to repo **Settings** → **Pages**
-   - Source: **Deploy from a branch**
-   - Branch: **main** / **(root)**
-   - Click **Save**
-
-4. Your app is live at `https://YOUR_USERNAME.github.io/easy-eats/`
-
-### Option 2: Local Development
-
-Simply open `index.html` in a browser. Note: OpenStreetMap API calls require the page to be served over HTTP(S), so for local testing use:
-
-```bash
-# Python
-python3 -m http.server 8000
-
-# Node
-npx serve .
-```
-
-Then visit `http://localhost:8000`
+Search any food and see a full nutrition breakdown (calories, fat, protein, carbs, etc.). Has a button to run a full allergen scan directly from the nutrition page.
 
 ---
 
-## Project Structure
+### Scan History
 
-```
-easy-eats/
-├── index.html          # Complete application (React + data + UI)
-├── README.md           # This file
-└── LICENSE             # MIT License
-```
-
-The application is a single-page app contained in `index.html` for maximum deployment simplicity. The code is organized into clearly commented sections:
-
-- **Allergen Database** — 12 allergen types with 200+ variant names
-- **False Positive Rules** — prevents incorrect flagging
-- **Ambiguous Ingredient Detection** — catches uncertain items
-- **Product Database** — 19 real products with ingredients
-- **Restaurant Chain Data** — 56 chains with full menus
-- **Analysis Engine** — intelligent ingredient scanning
-- **OpenStreetMap Integration** — real location search
-- **Multi-User Auth System** — signup/login/logout
-- **UI Components** — React components for each page
+Every scan is saved. The home screen shows a count of total, safe, and flagged scans — each is clickable to filter the history list. Tapping any past scan shows the full result including the original ingredient list.
 
 ---
 
-## How the Scanner Works
+### Allergen Card
 
-1. **Ingredient Parsing** — splits raw ingredient text by commas/semicolons, preserving parenthetical groups
-2. **False Positive Check** — applies exclusion rules (e.g., "coconut milk" skips dairy check)
-3. **Direct Allergen Match** — checks each ingredient against 200+ known allergen variant names
-4. **Ambiguous Detection** — flags ingredients like "natural flavors" or "modified starch" that may contain allergens
-5. **Results Compilation** — categorizes each ingredient as safe/caution/danger with explanations
+Generates a card with your name, allergens, and an emergency contact. Designed to show restaurant staff or anyone preparing food for you.
 
 ---
 
-## APIs Used
+### Account / Profile
 
-| API | Purpose | Cost | Auth Required |
-|-----|---------|------|---------------|
-| [Nominatim](https://nominatim.org/) | Geocoding (city → coordinates) | Free | No |
-| [Overpass](https://overpass-api.de/) | Restaurant location data | Free | No |
-
-Both APIs are part of the OpenStreetMap ecosystem and require no API keys or accounts.
+- Email and password login, works across devices (stored in Firebase)
+- Forgot password sends a reset email
+- Edit your allergen profile at any time — past scans automatically update to reflect your current profile
+- Delete account option
 
 ---
 
-## Built With
+## Tech
 
-This project was built using [Claude](https://claude.ai) as an AI development assistant.
+- Single `index.html` file — React 18 and Babel loaded via CDN, no build step
+- Firebase Authentication and Firestore for user accounts and data
+- OpenStreetMap (Nominatim + Overpass) for map and location search
+- html2canvas for image sharing
 
 ---
 
 ## Disclaimer
 
-Easy Eats is an informational tool only. Always verify ingredients directly with food manufacturers. Allergen data in restaurant menus may change without notice. This application is not a substitute for medical advice. Always carry emergency medication (e.g., EpiPen) if you have severe allergies.
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
+Easy Eats is an informational tool. Always verify ingredients directly with manufacturers — allergen data can change. This is not a substitute for medical advice. If you have severe allergies, always carry your medication.
