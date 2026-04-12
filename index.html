@@ -231,6 +231,7 @@ function App() {
   const [forgotSent, setForgotSent] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [pendingGoogleUid, setPendingGoogleUid] = useState(null);
+  const [pendingGoogleEmail, setPendingGoogleEmail] = useState(null);
 
   // App state
   const [pg, setPg] = useState("home");
@@ -308,6 +309,7 @@ function App() {
           } else {
             // Auth account exists but no Firestore profile — needs allergen setup
             setPendingGoogleUid(fbUser.uid);
+            setPendingGoogleEmail(fbUser.email);
             setAuthName(fbUser.displayName||"");
             setAuthMode("setupAllergens");
             setAuthLoading(false);
@@ -327,6 +329,7 @@ function App() {
         setPg("home");
         setAuthMode("login");
         setPendingGoogleUid(null);
+        setPendingGoogleEmail(null);
       }
       setAuthLoading(false);
       setLoaded(true);
@@ -421,7 +424,7 @@ function App() {
       let uid, email, displayName;
       if (pendingGoogleUid) {
         // Google sign-in — auth account already exists
-        uid = pendingGoogleUid; email = auth.currentUser?.email; displayName = authName.trim() || auth.currentUser?.displayName || "User";
+        uid = pendingGoogleUid; email = pendingGoogleEmail || auth.currentUser?.email; displayName = authName.trim() || auth.currentUser?.displayName || "User";
       } else {
         const cred = await auth.createUserWithEmailAndPassword(authUser.trim(), authPass);
         uid = cred.user.uid; email = cred.user.email; displayName = authName.trim();
@@ -429,6 +432,7 @@ function App() {
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
       await db.collection("users").doc(uid).set(newProf);
       setPendingGoogleUid(null);
+      setPendingGoogleEmail(null);
       setCurrentUser(email);
       setProf(newProf);
       setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
@@ -1091,7 +1095,7 @@ function App() {
 
         {authMode==="setupAllergens"?(
           <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
-            <button onClick={async()=>{if(pendingGoogleUid){await auth.signOut();setPendingGoogleUid(null);}setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
+            <button onClick={async()=>{if(pendingGoogleUid){await auth.signOut();setPendingGoogleUid(null);setPendingGoogleEmail(null);}setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
             <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:400,color:S.text,margin:"0 0 6px"}}>Select your allergens</h2>
             <p style={{color:S.mut,fontSize:"13px",marginBottom:"20px"}}>Choose all that apply. You can edit these later.</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px"}}>
