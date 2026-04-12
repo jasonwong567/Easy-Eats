@@ -437,31 +437,37 @@ function App() {
 
   const finishSignup = async () => {
     if (authAllergens.length === 0 && authCustomList.length === 0) { setAuthError("Select at least one allergen."); return; }
-    setAuthLoading(true);
+    setAuthError("");
+    // Use a local loading flag so we don't trigger the "Signing in..." fullscreen overlay
+    const btn = document.getElementById("finish-signup-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "Creating account..."; }
     try {
       let uid, email, displayName;
       if (pendingGoogleUid) {
-        // Google sign-in — auth account already exists
-        uid = pendingGoogleUid; email = pendingGoogleEmail || auth.currentUser?.email; displayName = authName.trim() || auth.currentUser?.displayName || "User";
+        uid = pendingGoogleUid;
+        email = pendingGoogleEmail || auth.currentUser?.email;
+        displayName = authName.trim() || auth.currentUser?.displayName || "User";
+        if (!uid || !email) throw new Error("Google session lost — please sign in again.");
       } else {
         const cred = await auth.createUserWithEmailAndPassword(authUser.trim(), authPass);
         uid = cred.user.uid; email = cred.user.email; displayName = authName.trim();
       }
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
       await db.collection("users").doc(uid).set(newProf);
-      setPendingGoogleUid(null);
-      setPendingGoogleEmail(null);
-      setCurrentUser(email);
-      setProf(newProf);
+      // Cache immediately so onAuthStateChanged doesn't wipe state
+      try { localStorage.setItem("ee_session", JSON.stringify({ email, prof: newProf })); } catch(e) {}
+      setPendingGoogleUid(null); setPendingGoogleEmail(null);
+      setCurrentUser(email); setProf(newProf);
       setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
       setPg("home");
     } catch(e) {
+      console.error("finishSignup error:", e);
       if (e.code==="auth/email-already-in-use") setAuthError("Email already in use. Log in instead?");
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
-      else setAuthError("Sign up failed: " + (e.message||"Try again."));
+      else setAuthError(e.message || "Sign up failed. Try again.");
       if (!pendingGoogleUid) setAuthMode("signup");
+      if (btn) { btn.disabled = false; btn.textContent = `Create Account (${authAllergens.length + authCustomList.length} allergens)`; }
     }
-    setAuthLoading(false);
   };
 
   const doGoogleSignIn = async () => {
@@ -1134,7 +1140,7 @@ function App() {
               {authCustomList.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"10px"}}>{authCustomList.map((c,i)=><span key={i} style={{padding:"4px 10px",background:S.pbg,border:`1px solid ${S.pBrd}`,borderRadius:"20px",fontSize:"12px",color:S.p,display:"flex",alignItems:"center",gap:"5px",fontWeight:500}}>{c}<button onClick={()=>setAuthCustomList(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:S.p,cursor:"pointer",fontSize:"13px",padding:"0",lineHeight:1}}>×</button></span>)}</div>}
             </div>
             {authError&&<div style={{marginTop:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,color:S.r,fontSize:"13px",border:`1px solid ${S.rbrd}`}}>{authError}</div>}
-            <button onClick={finishSignup} disabled={authAllergens.length===0&&authCustomList.length===0}
+            <button id="finish-signup-btn" onClick={finishSignup} disabled={authAllergens.length===0&&authCustomList.length===0}
               style={{width:"100%",marginTop:"20px",padding:"14px",background:(authAllergens.length||authCustomList.length)?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:(authAllergens.length||authCustomList.length)?"#fff":S.mut2,fontSize:"15px",fontWeight:700,cursor:(authAllergens.length||authCustomList.length)?"pointer":"default",fontFamily:S.f,boxShadow:(authAllergens.length||authCustomList.length)?S.shadowBlue:"none",letterSpacing:"-0.2px"}}>
               Create Account ({authAllergens.length + authCustomList.length} allergens)
             </button>
