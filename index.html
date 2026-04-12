@@ -1411,6 +1411,8 @@ function App() {
 
           {/* Manual tab */}
           {scannerTab==="manual"&&<div style={{marginBottom:"16px"}}>
+            <input value={photoLabel} onChange={e=>setPhotoLabel(e.target.value)} placeholder="Item name (e.g. Oreo, Lay's Classic)"
+              style={{width:"100%",padding:"13px 16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"14px",color:S.text,fontFamily:S.f,fontSize:"14px",boxSizing:"border-box",marginBottom:"10px",boxShadow:S.shadowSm}} />
             <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="Paste or type ingredient list here..."
               style={{width:"100%",minHeight:"140px",padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"16px",color:S.text,fontFamily:S.f,fontSize:"14px",lineHeight:1.65,resize:"vertical",boxSizing:"border-box",boxShadow:S.shadowSm}} />
           </div>}
