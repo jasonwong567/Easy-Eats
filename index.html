@@ -363,7 +363,10 @@ function App() {
           }
         } catch(e) {
           console.error("Firestore load error:", e);
-          triggerFallback();
+          setAuthError("Couldn't load your profile — check your connection and try again.");
+          setAuthLoading(false);
+          setLoaded(true);
+          setCurrentUser(null); setProf(null);
           return;
         }
       } else {
@@ -426,11 +429,17 @@ function App() {
     const p = authPass;
     if (!email || !p) { setAuthError("Enter email and password."); return; }
     setAuthLoading(true);
+    // Safety timeout — if onAuthStateChanged never clears the spinner, do it after 12s
+    const loginTimeout = setTimeout(() => {
+      setAuthLoading(false);
+      setAuthError("Login timed out — check your connection and try again.");
+    }, 12000);
     try {
       await auth.signInWithEmailAndPassword(email, p);
+      clearTimeout(loginTimeout);
       // onAuthStateChanged will fire, load profile, and set pg("home")
-      // authLoading stays true until that completes
     } catch(e) {
+      clearTimeout(loginTimeout);
       setAuthLoading(false);
       if (e.code==="auth/user-not-found"||e.code==="auth/invalid-credential"||e.code==="auth/wrong-password") setAuthError("Incorrect email or password.");
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
