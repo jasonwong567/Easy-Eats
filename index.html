@@ -475,7 +475,12 @@ function App() {
         uid = cred.user.uid; email = cred.user.email; displayName = authName.trim();
       }
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
-      await db.collection("users").doc(uid).set(newProf);
+      try {
+        await db.collection("users").doc(uid).set(newProf);
+      } catch(firestoreErr) {
+        if (!pendingGoogleUid) { try { await auth.currentUser?.delete(); } catch(e) {} }
+        throw new Error("Failed to save your profile. Please try again.");
+      }
       // Cache immediately so onAuthStateChanged doesn't wipe state
       try { localStorage.setItem("ee_session", JSON.stringify({ email, prof: newProf })); } catch(e) {}
       setPendingGoogleUid(null); setPendingGoogleEmail(null);
@@ -533,10 +538,11 @@ function App() {
       // onAuthStateChanged will fire with null and clean up state
       setConfirmDelete(false); setDeletePassword(""); setDeleteError("");
     } catch(e) {
-      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") return;
       if (e.code==="auth/wrong-password"||e.code==="auth/invalid-credential") setDeleteError("Incorrect password.");
       else if (e.code==="auth/requires-recent-login") setDeleteError("Session expired. Log out and back in, then try again.");
-      else setDeleteError("Failed to delete: " + (e.message||"Try again."));
+      else if (e.code==="auth/too-many-requests") setDeleteError("Too many attempts. Wait a few minutes and try again.");
+      else if (e.code==="auth/network-request-failed") setDeleteError("No internet connection. Try again.");
+      else setDeleteError("Failed to delete. Try again.");
     }
   };
 
@@ -592,8 +598,9 @@ function App() {
 
   const chainScore = (chain) => {
     if (!(prof&&prof.allergens&&prof.allergens.length)) return {safe:0,danger:0,pct:0};
+    if (!chain.menu||chain.menu.length===0) return {safe:0,danger:0,pct:0};
     let safe=0,danger=0;
-    chain.menu.forEach(item => { if (item.a.some(a => prof.allergens.includes(a))) danger++; else safe++; });
+    chain.menu.forEach(item => { if ((item.a||[]).some(a => prof.allergens.includes(a))) danger++; else safe++; });
     return {safe,danger,pct:Math.round((safe/chain.menu.length)*100)};
   };
 
@@ -1274,6 +1281,7 @@ function App() {
               <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,fontFamily:S.mono}}>{histFilter==="all"?"Recent Scans":histFilter==="safe"?"Safe Scans":"Flagged Scans"}</span>
               <span style={{fontSize:"11px",color:S.mut2}}>{filtered.length} {histFilter==="all"?"total":"shown"}{histFilter!=="all"&&<button onClick={()=>setHistFilter("all")} style={{marginLeft:"8px",background:"none",border:"none",color:S.p,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>clear ×</button>}</span>
             </div>
+            {filtered.length===0 && <div style={{textAlign:"center",padding:"32px 24px",background:S.card,borderRadius:"16px",border:`1px solid ${S.brd}`,color:S.mut,fontSize:"13px"}}>No {histFilter==="safe"?"safe":"flagged"} scans yet.</div>}
             {filtered.slice(0,20).map(h=>(
               <button key={h.id} onClick={()=>{setViewHist(h);nav("histDetail",true);}} style={{padding:"13px 16px",marginBottom:"7px",background:S.card,border:`1px solid ${S.brd}`,borderRadius:"16px",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",boxShadow:S.shadowSm,transition:"box-shadow 0.15s"}}>
                 {(()=>{const lr=liveResult(h);const changed=h.ingredients&&lr.overall!==h.overall;const clr=sc(lr.overall);return(<>
@@ -1303,7 +1311,7 @@ function App() {
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
             <button onClick={()=>nav("home")} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:0,fontWeight:600}}>← Back</button>
             <div style={{display:"flex",gap:"8px"}}>
-              <button onClick={()=>shareResults(lr, viewHist.label, histDetailRef.current)} disabled={copied==="loading"} style={{padding:"8px 16px",background:copied===true?S.gbg:S.card,border:`1.5px solid ${copied===true?S.gbrd:S.brd}`,borderRadius:"10px",color:copied===true?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
+              <button onClick={()=>shareResults({...lr, scannedText: viewHist.ingredients}, viewHist.label, histDetailRef.current)} disabled={copied==="loading"} style={{padding:"8px 16px",background:copied===true?S.gbg:S.card,border:`1.5px solid ${copied===true?S.gbrd:S.brd}`,borderRadius:"10px",color:copied===true?S.g:S.mut,fontSize:"12px",cursor:"pointer",fontFamily:S.f,fontWeight:700,boxShadow:S.shadowSm}}>
                 {copied==="loading"?"⏳":"📤 Share"}
               </button>
               <button onClick={()=>doScan(viewHist.ingredients||viewHist.label, viewHist.label)} style={{padding:"8px 16px",background:S.pGrad,border:"none",borderRadius:"10px",color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>↺ Rescan</button>
