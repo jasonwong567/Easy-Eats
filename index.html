@@ -257,6 +257,7 @@ function App() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [signingUp, setSigningUp] = useState(false);
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
@@ -461,9 +462,7 @@ function App() {
   const finishSignup = async () => {
     if (authAllergens.length === 0 && authCustomList.length === 0) { setAuthError("Select at least one allergen."); return; }
     setAuthError("");
-    // Use a local loading flag so we don't trigger the "Signing in..." fullscreen overlay
-    const btn = document.getElementById("finish-signup-btn");
-    if (btn) { btn.disabled = true; btn.textContent = "Creating account..."; }
+    setSigningUp(true);
     try {
       let uid, email, displayName;
       if (pendingGoogleUid) {
@@ -478,9 +477,11 @@ function App() {
       const newProf = { name: displayName, allergens: authAllergens, customAllergens: authCustomList, history: [], createdAt: new Date().toISOString() };
       try {
         await db.collection("users").doc(uid).set(newProf);
-        // Verify the write actually reached the server (offline persistence can silently queue writes)
-        const verify = await db.collection("users").doc(uid).get({ source: "server" });
-        if (!verify.exists) throw new Error("server-verify-failed");
+        // Verify write reached server with 8s timeout (offline persistence can silently queue writes)
+        const verifyPromise = db.collection("users").doc(uid).get({ source: "server" });
+        const timeoutPromise = new Promise((_,reject) => setTimeout(() => reject(new Error("timeout")), 8000));
+        const verify = await Promise.race([verifyPromise, timeoutPromise]).catch(()=>null);
+        if (verify && !verify.exists) throw new Error("Profile couldn't be saved — check your internet connection and try again.");
       } catch(firestoreErr) {
         if (!pendingGoogleUid) { try { await auth.currentUser?.delete(); } catch(e) {} }
         throw new Error("Profile couldn't be saved — check your internet connection and try again.");
@@ -490,14 +491,15 @@ function App() {
       setPendingGoogleUid(null); setPendingGoogleEmail(null);
       setCurrentUser(email); setProf(newProf);
       setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthAllergens([]); setAuthCustomList([]); setAuthCustom(""); setAuthError("");
+      setSigningUp(false);
       setPg("home");
     } catch(e) {
+      setSigningUp(false);
       console.error("finishSignup error:", e);
       if (e.code==="auth/email-already-in-use") setAuthError("Email already in use. Log in instead?");
       else if (e.code==="auth/invalid-email") setAuthError("Invalid email address.");
       else setAuthError(e.message || "Sign up failed. Try again.");
       if (!pendingGoogleUid) setAuthMode("signup");
-      if (btn) { btn.disabled = false; btn.textContent = `Create Account (${authAllergens.length + authCustomList.length} allergens)`; }
     }
   };
 
@@ -1130,6 +1132,13 @@ function App() {
 
         {authMode==="setupAllergens"?(
           <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
+            {signingUp ? (
+              <div style={{textAlign:"center",padding:"40px 0"}}>
+                <div style={{fontSize:"40px",marginBottom:"16px"}}>⏳</div>
+                <div style={{fontFamily:S.sf,fontSize:"20px",fontWeight:400,color:S.text,marginBottom:"8px"}}>Creating your account…</div>
+                <div style={{fontSize:"13px",color:S.mut}}>Saving your profile, just a moment.</div>
+              </div>
+            ) : (<>
             <button onClick={async()=>{if(pendingGoogleUid){await auth.signOut();setPendingGoogleUid(null);setPendingGoogleEmail(null);}setAuthMode("signup");setAuthError("");}} style={{background:"none",border:"none",color:S.p,fontSize:"13px",cursor:"pointer",fontFamily:S.f,padding:"0 0 14px",fontWeight:600}}>← Back</button>
             <h2 style={{fontFamily:S.sf,fontSize:"22px",fontWeight:400,color:S.text,margin:"0 0 6px"}}>Select your allergens</h2>
             <p style={{color:S.mut,fontSize:"13px",marginBottom:"20px"}}>Choose all that apply. You can edit these later.</p>
@@ -1154,6 +1163,7 @@ function App() {
               style={{width:"100%",marginTop:"20px",padding:"14px",background:(authAllergens.length||authCustomList.length)?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:(authAllergens.length||authCustomList.length)?"#fff":S.mut2,fontSize:"15px",fontWeight:700,cursor:(authAllergens.length||authCustomList.length)?"pointer":"default",fontFamily:S.f,boxShadow:(authAllergens.length||authCustomList.length)?S.shadowBlue:"none",letterSpacing:"-0.2px"}}>
               Create Account ({authAllergens.length + authCustomList.length} allergens)
             </button>
+            </>)}
           </div>
         ):authMode==="forgot"?(
           <div style={{background:S.card,border:`1px solid ${S.brd}`,borderRadius:"24px",padding:"32px",boxShadow:S.shadow}}>
@@ -1879,6 +1889,13 @@ function App() {
               Delete Account
             </button>:
             <div style={{padding:"18px",borderRadius:"14px",background:S.rbg,border:`1.5px solid ${S.rbrd}`}}>
+              {deleting ? (
+                <div style={{textAlign:"center",padding:"20px 0"}}>
+                  <div style={{fontSize:"30px",marginBottom:"10px"}}>⏳</div>
+                  <div style={{fontSize:"14px",color:S.r,fontWeight:600}}>Deleting your account…</div>
+                  <div style={{fontSize:"12px",color:S.mut,marginTop:"6px"}}>This may take a few seconds.</div>
+                </div>
+              ) : (<>
               <div style={{fontSize:"13px",color:S.r,marginBottom:"12px",fontWeight:600}}>⚠️ This permanently deletes your account, allergens, and scan history.</div>
               <input type="password" value={deletePassword} onChange={e=>{setDeletePassword(e.target.value);setDeleteError("");}} placeholder="Enter your password to confirm"
                 style={{width:"100%",padding:"11px 12px",background:S.card,border:`1.5px solid ${S.rbrd}`,borderRadius:"10px",color:S.text,fontSize:"13px",fontFamily:S.f,boxSizing:"border-box",marginBottom:"6px"}} />
@@ -1886,8 +1903,9 @@ function App() {
               {deleteError&&<div style={{fontSize:"12px",color:deleteError.includes("sent")?S.g:S.r,marginBottom:"10px",fontWeight:600}}>{deleteError}</div>}
               <div style={{display:"flex",gap:"8px"}}>
                 <button onClick={()=>{setConfirmDelete(false);setDeletePassword("");setDeleteError("");setDeleting(false);}} style={{flex:1,padding:"11px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"10px",color:S.mut,fontSize:"13px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Cancel</button>
-                <button onClick={doDeleteAccount} disabled={deleting} style={{flex:1,padding:"11px",background:S.r,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:deleting?"not-allowed":"pointer",fontFamily:S.f,opacity:deleting?0.7:1}}>{deleting?"Deleting…":"Yes, Delete"}</button>
+                <button onClick={doDeleteAccount} style={{flex:1,padding:"11px",background:S.r,border:"none",borderRadius:"10px",color:"#fff",fontSize:"13px",fontWeight:700,cursor:"pointer",fontFamily:S.f}}>Yes, Delete</button>
               </div>
+              </>)}
             </div>
           }
         </div>}
