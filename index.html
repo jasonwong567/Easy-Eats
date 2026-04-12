@@ -308,15 +308,20 @@ function App() {
             setAuthMode("setupAllergens");
           }
         } catch(e) {
-          // Firestore failed — still log in so user isn't stuck
+          // Firestore failed — check if this is an existing session or new signup
           console.error("Firestore load error:", e);
-          setCurrentUser(fbUser.email);
-          setProf({ name: fbUser.displayName||fbUser.email.split("@")[0], allergens: [], customAllergens: [], history: [] });
-          setPg("home");
+          // If they have a display name from a previous session, try to restore
+          // Otherwise send to allergen setup so no one skips it
+          setPendingGoogleUid(fbUser.uid);
+          setAuthName(fbUser.displayName||fbUser.email?.split("@")[0]||"");
+          setAuthMode("setupAllergens");
         }
       } else {
         setCurrentUser(null);
         setProf(null);
+        setPg("home");
+        setAuthMode("login");
+        setPendingGoogleUid(null);
       }
       setAuthLoading(false);
       setLoaded(true);
@@ -463,23 +468,28 @@ function App() {
     if (!fbUser) return;
     setDeleteError("");
     try {
-      // Re-authenticate before deleting
       const providers = fbUser.providerData.map(p => p.providerId);
       if (providers.includes("google.com")) {
+        // For Google: sign in fresh to get a new credential, then reauthenticate
         const provider = new firebase.auth.GoogleAuthProvider();
-        await fbUser.reauthenticateWithPopup(provider);
+        provider.setCustomParameters({ login_hint: fbUser.email });
+        const result = await auth.signInWithPopup(provider);
+        const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+        await fbUser.reauthenticateWithCredential(credential);
       } else {
         if (!deletePassword) { setDeleteError("Enter your password to confirm."); return; }
         const cred = firebase.auth.EmailAuthProvider.credential(fbUser.email, deletePassword);
         await fbUser.reauthenticateWithCredential(cred);
       }
-      await db.collection("users").doc(fbUser.uid).delete();
-      await fbUser.delete();
-      setCurrentUser(null); setProf(null); setPg("home"); setAuthMode("login");
+      const uid = fbUser.uid;
+      await db.collection("users").doc(uid).delete();
+      await auth.currentUser.delete();
+      // onAuthStateChanged will fire with null and clean up state
       setConfirmDelete(false); setDeletePassword(""); setDeleteError("");
     } catch(e) {
+      if (e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") return;
       if (e.code==="auth/wrong-password"||e.code==="auth/invalid-credential") setDeleteError("Incorrect password.");
-      else if (e.code==="auth/popup-closed-by-user") setDeleteError("");
+      else if (e.code==="auth/requires-recent-login") setDeleteError("Session expired. Log out and back in, then try again.");
       else setDeleteError("Failed to delete: " + (e.message||"Try again."));
     }
   };
