@@ -206,6 +206,8 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 const db = firebase.firestore();
+// Enable offline persistence so Firestore reads come from local cache instantly
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 function App() {
   const [loaded, setLoaded] = useState(false);
@@ -313,21 +315,40 @@ function App() {
 
   // Step 2: confirm with Firebase in background, update if changed, clear if session expired
   useEffect(() => {
+    // If we already loaded from cache, set a 3s max wait for Firebase
+    // so slow connections don't leave user stuck on "Signing in..."
+    let fallbackTimer = null;
+    const triggerFallback = () => {
+      try {
+        const cached = localStorage.getItem("ee_session");
+        if (cached) {
+          const { email, prof: cachedProf } = JSON.parse(cached);
+          if (email && cachedProf) {
+            setCurrentUser(email); setProf(cachedProf);
+            setEmergencyContact(cachedProf.emergencyContact||"");
+            setEmergencyPhone(cachedProf.emergencyPhone||"");
+          }
+        }
+      } catch(e) {}
+      setAuthLoading(false); setLoaded(true);
+    };
+    fallbackTimer = setTimeout(triggerFallback, 3000);
+
     const unsub = auth.onAuthStateChanged(async (fbUser) => {
+      clearTimeout(fallbackTimer);
       if (fbUser) {
         try {
-          const snap = await db.collection("users").doc(fbUser.uid).get();
+          const snap = await db.collection("users").doc(fbUser.uid).get({ source: "cache" }).catch(() =>
+            db.collection("users").doc(fbUser.uid).get()
+          );
           if (snap.exists) {
             const data = snap.data();
             setCurrentUser(fbUser.email);
             setProf(data);
             setEmergencyContact(data.emergencyContact||"");
             setEmergencyPhone(data.emergencyPhone||"");
-            // Update cache with fresh data
             try { localStorage.setItem("ee_session", JSON.stringify({ email: fbUser.email, prof: data })); } catch(e) {}
-            setPg(pg => pg === "home" ? "home" : pg); // don't override if user navigated
           } else {
-            // No Firestore profile — needs allergen setup
             localStorage.removeItem("ee_session");
             setCurrentUser(null); setProf(null);
             setPendingGoogleUid(fbUser.uid);
@@ -338,11 +359,10 @@ function App() {
           }
         } catch(e) {
           console.error("Firestore load error:", e);
-          // If cache got us in, stay in — just log the error
-          if (!auth.currentUser) { localStorage.removeItem("ee_session"); setCurrentUser(null); setProf(null); }
+          triggerFallback();
+          return;
         }
       } else {
-        // Session expired or logged out — clear cache
         localStorage.removeItem("ee_session");
         setCurrentUser(null); setProf(null);
         setPg("home"); setAuthMode("login");
@@ -351,7 +371,7 @@ function App() {
       setAuthLoading(false);
       setLoaded(true);
     });
-    return () => unsub();
+    return () => { clearTimeout(fallbackTimer); unsub(); };
   }, []);
 
   // Load external data files — serve from localStorage cache for instant load, refresh in background
