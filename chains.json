@@ -257,7 +257,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.chipotle.com/nutrition"
+    "nutritionUrl": "https://www.chipotle.com/allergens"
   },
   {
     "id": "subway",
@@ -479,7 +479,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.wendys.com/nutrition"
+    "nutritionUrl": "https://www.wendys.com/nutrition-allergens"
   },
   {
     "id": "starbucks",
@@ -834,7 +834,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.bk.com/pdfs/allergens.pdf"
+    "nutritionUrl": "https://www.bk.com/nutrition-explorer"
   },
   {
     "id": "popeyes",
@@ -1213,7 +1213,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.pandaexpress.com/nutrition"
+    "nutritionUrl": "https://www.pandaexpress.com/nutritioninformation"
   },
   {
     "id": "olivegarden",
@@ -1358,7 +1358,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.applebees.com/en/nutrition"
+    "nutritionUrl": "https://www.applebees.com/en/nutrition/info"
   },
   {
     "id": "chillis",
@@ -1495,7 +1495,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.kfc.com/nutrition"
+    "nutritionUrl": "https://www.kfc.com/food-allergies-and-sensitivities"
   },
   {
     "id": "sonic",
@@ -1630,7 +1630,7 @@
         ]
       }
     ],
-    "nutritionUrl": "http://static.jackinthebox.com/pdfs/allergens_reference_guide.pdf"
+    "nutritionUrl": "https://www.jackinthebox.com/food/documents/ingredient_and_allergen_document"
   },
   {
     "id": "innout",
@@ -1749,7 +1749,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.shakeshack.com/allergens/"
+    "nutritionUrl": "https://shakeshack.com/sites/default/files/2023-12/Allergen_1.pdf"
   },
   {
     "id": "whataburger",
@@ -1816,7 +1816,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://wbimageserver.whataburger.com/Nutrition.pdf"
+    "nutritionUrl": "https://whataburger.com/food/nutrition"
   },
   {
     "id": "arbys",
@@ -1948,7 +1948,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.jerseymikes.com/menu/nutrition-info"
+    "nutritionUrl": "https://www.jerseymikes.com/menu/nutrition"
   },
   {
     "id": "jimmyjohns",
@@ -2077,7 +2077,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.firehousesubs.com/menu/nutritional-info/"
+    "nutritionUrl": "https://www.firehousesubs.com/nutritional-information"
   },
   {
     "id": "sweetgreen",
@@ -2316,7 +2316,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.buffalowildwings.com/en/food/nutrition/"
+    "nutritionUrl": "https://www.buffalowildwings.com/nutrition/"
   },
   {
     "id": "raisingcanes",
@@ -2571,7 +2571,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.baskinrobbins.com/content/baskinrobbins/en/nutritioncatalog.html"
+    "nutritionUrl": "https://www.baskinrobbins.com/content/dam/br/pdf/BRAllergens.pdf"
   },
   {
     "id": "jamba",
@@ -2624,7 +2624,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.jamba.com/menu"
+    "nutritionUrl": "https://www.jamba.com/-/media/jamba/files/jamba-nutrition-spreadsheet-2022--81622.pdf"
   },
   {
     "id": "smoothieking",
@@ -2749,7 +2749,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.noodles.com/nutrition/"
+    "nutritionUrl": "https://www.noodles.com/eat-well"
   },
   {
     "id": "potbelly",
@@ -3194,7 +3194,7 @@
         "a": []
       }
     ],
-    "nutritionUrl": "https://www.culvers.com/nutrition-and-allergens/nutrition"
+    "nutritionUrl": "https://www.culvers.com/menu-and-nutrition/nutrition-and-allergen-guide"
   },
   {
     "id": "qdoba",
@@ -3317,7 +3317,7 @@
         ]
       }
     ],
-    "nutritionUrl": "https://www.elpolloloco.com/nutrition/"
+    "nutritionUrl": "https://www.elpolloloco.com/our-food/nutrition-information.html"
   },
   {
     "id": "moes",
