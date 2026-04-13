@@ -620,11 +620,13 @@ function App() {
   };
 
   const chainScore = (chain) => {
-    if (!(prof&&prof.allergens&&prof.allergens.length)) return {safe:0,danger:0,pct:0};
+    const totalAllergens = (prof?.allergens?.length||0) + (prof?.customAllergens?.length||0);
+    if (!prof || !totalAllergens) return {safe:0,danger:0,pct:0};
     if (!chain.menu||chain.menu.length===0) return {safe:0,danger:0,pct:0};
+    if (!prof.allergens.length) return {safe:chain.menu.length,danger:0,pct:100,customOnly:true};
     let safe=0,danger=0;
     chain.menu.forEach(item => { if ((item.a||[]).some(a => prof.allergens.includes(a))) danger++; else safe++; });
-    return {safe,danger,pct:Math.round((safe/chain.menu.length)*100)};
+    return {safe,danger,pct:Math.round((safe/chain.menu.length)*100),customOnly:false};
   };
 
 
@@ -1834,6 +1836,9 @@ function App() {
               <div style={{fontSize:"12px",fontWeight:700,color:S.g,whiteSpace:"nowrap"}}>Open in Maps</div>
             </a>}
           </div>
+          {(prof.allergens.length===0&&(prof.customAllergens||[]).length>0)&&<div style={{padding:"12px 14px",borderRadius:"12px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"16px",fontSize:"13px",color:S.y,fontWeight:600,lineHeight:1.5}}>
+            ⚠️ Menu data only covers common allergens. Your custom allergens ({(prof.customAllergens||[]).join(", ")}) can't be checked from this list — use the allergen info link above to verify with the restaurant directly.
+          </div>}
           <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}>
             <div style={{height:"1px",flex:1,background:S.brd}}/>
             <span style={{fontSize:"10px",color:S.mut,fontFamily:S.mono,fontWeight:600,textTransform:"uppercase",letterSpacing:"1px"}}>Quick preview · {viewChain.menu.length} items</span>
@@ -1949,6 +1954,7 @@ function App() {
                   <div style={{fontSize:"12px",color:S.mut,marginBottom:"10px"}}>I have the following food allergies:</div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"12px"}}>
                     {prof.allergens.map(id=>{const a=AL.find(x=>x.id===id);return <span key={id} style={{padding:"5px 11px",background:S.rbg,border:`1px solid ${S.rbrd}`,borderRadius:"20px",fontSize:"12px",color:S.r,fontWeight:600}}>{a&&a.icon} {a&&a.label}</span>;})}
+                    {(prof.customAllergens||[]).map((c,i)=><span key={"cc"+i} style={{padding:"5px 11px",background:S.ybg,border:`1px solid ${S.ybrd}`,borderRadius:"20px",fontSize:"12px",color:S.y,fontWeight:600}}>✦ {c}</span>)}
                   </div>
                   {(prof.emergencyContact||prof.emergencyPhone)&&(
                     <div style={{borderTop:`1px solid ${S.brd}`,paddingTop:"10px",marginTop:"4px"}}>
