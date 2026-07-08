@@ -34,7 +34,8 @@
         "butterfat",
         "nonfat milk",
         "skim milk",
-        "whole milk"
+        "whole milk",
+        "lactoglobulin"
       ]
     },
     {
@@ -134,19 +135,25 @@
         "bread crumbs",
         "breadcrumbs",
         "bran",
-        "starch",
-        "modified food starch",
         "hydrolyzed wheat",
         "vital wheat gluten",
         "enriched flour",
         "all-purpose flour",
         "graham",
         "triticale",
-        "malt",
         "malt extract",
         "barley",
         "rye",
-        "brewer's yeast"
+        "brewer's yeast",
+        "wheat starch",
+        "wheat flour",
+        "bread flour",
+        "malted barley",
+        "barley malt",
+        "malt syrup",
+        "malt flavor",
+        "malted milk",
+        "malt vinegar"
       ]
     },
     {
@@ -427,7 +434,8 @@
     {
       "p": "coconut butter",
       "s": [
-        "milk"
+        "milk",
+        "treenuts"
       ]
     },
     {
@@ -482,6 +490,272 @@
       "p": "egg plant",
       "s": [
         "eggs"
+      ]
+    },
+    {
+      "p": "soy milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "rice milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "hemp milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "pea milk",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "milk thistle",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "peanut butter",
+      "s": [
+        "milk",
+        "treenuts"
+      ]
+    },
+    {
+      "p": "almond butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "cashew butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "sunflower seed butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "sunflower butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "apple butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "nut butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "seed butter",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "butternut squash",
+      "s": [
+        "milk",
+        "treenuts"
+      ]
+    },
+    {
+      "p": "creamy",
+      "s": [
+        "milk"
+      ]
+    },
+    {
+      "p": "lactalbumin",
+      "s": [
+        "eggs"
+      ]
+    },
+    {
+      "p": "lactoglobulin",
+      "s": [
+        "eggs"
+      ]
+    },
+    {
+      "p": "sunflower lecithin",
+      "s": [
+        "soy"
+      ]
+    },
+    {
+      "p": "buckwheat flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "buckwheat",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "rice flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "corn flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "almond flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "coconut flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "soy flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "oat flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "potato flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "tapioca flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "chickpea flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "cassava flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "peanut flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "sesame flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "mustard flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "lupin flour",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "brandy",
+      "s": [
+        "wheat"
+      ]
+    },
+    {
+      "p": "crumb",
+      "s": [
+        "alcohol"
+      ]
+    },
+    {
+      "p": "root beer",
+      "s": [
+        "alcohol"
+      ]
+    },
+    {
+      "p": "ginger beer",
+      "s": [
+        "alcohol"
+      ]
+    },
+    {
+      "p": "birch beer",
+      "s": [
+        "alcohol"
+      ]
+    },
+    {
+      "p": "corned beef",
+      "s": [
+        "corn"
+      ]
+    },
+    {
+      "p": "cornish",
+      "s": [
+        "corn"
+      ]
+    },
+    {
+      "p": "acorn",
+      "s": [
+        "corn"
+      ]
+    },
+    {
+      "p": "crabapple",
+      "s": [
+        "shellfish"
+      ]
+    },
+    {
+      "p": "crab apple",
+      "s": [
+        "shellfish"
       ]
     }
   ],
