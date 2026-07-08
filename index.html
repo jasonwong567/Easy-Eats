@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Easy Eats — Allergen Safety Assistant</title>
   <meta name="description" content="Your personal food allergen safety assistant. Scan ingredients, find safe restaurants, and manage your allergen profile.">
   <meta name="theme-color" content="#FAFAFA">
@@ -48,9 +48,6 @@
     /* Gradient text */
     .grad-text { background: linear-gradient(135deg, #0052FF, #4D7CFF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-    /* Desktop scaling */
-    @media (min-width: 1440px) { #root { zoom: 1.05; } }
-    @media (min-width: 1800px) { #root { zoom: 1.08; } }
   </style>
 </head>
 <body>
@@ -71,6 +68,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="scan-engine.js"></script>
 
   <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -81,69 +79,22 @@ const { useState, useEffect, useRef } = React;
 // Format: https://easy-eats-api.<YOUR_SUBDOMAIN>.workers.dev
 const WORKER_URL = "https://easy-eats-api.jasonwong38927.workers.dev";
 
-// Module-level refs so runScan (defined outside App) can access loaded data
-const ALRef = { current: [] };
-const FPRef = { current: [] };
-const AMBRef = { current: [] };
-const CITIESRef = { current: [] };
-
 // ─── ANALYSIS ENGINE ───
-// ua = array of allergen IDs, customAllergens = array of custom allergen strings
-function runScan(text, ua, customAllergens) {
-    const AL = ALRef.current.length ? ALRef.current : [];
-    const FP = FPRef.current.length ? FPRef.current : [];
-    const AMB = AMBRef.current.length ? AMBRef.current : [];
-  const lower = text.toLowerCase();
-  const raw = lower.replace(/\([^)]*\)/g, m => m.replace(/,/g, "§")).split(/[,;]/).map(s => s.replace(/§/g, ",").trim()).filter(s => s.length > 1);
-  const items = []; const dSet = new Set(); const cSet = new Set();
-  const custom = (customAllergens||[]).map(c => c.toLowerCase().trim()).filter(Boolean);
-  raw.forEach(ing => {
-    const c = ing.replace(/^\d+%?\s*(or less of:?\s*)?/i,"").replace(/[()]/g," ").replace(/\s+/g," ").trim();
-    if (!c) return;
-    let m = false;
-    const sk = new Set();
-    FP.forEach(r => { if (c.includes(r.p)) r.s.forEach(s => sk.add(s)); });
-    // Check custom allergens first
-    for (const cv of custom) {
-      if (c.includes(cv)) {
-        items.push({ingredient:c,status:"danger",allergen:cv,reason:`Contains "${cv}" — custom allergen`});
-        dSet.add("custom:"+cv); m = true; break;
-      }
-    }
-    if (!m) {
-      for (const aid of ua) {
-        if (sk.has(aid)) continue;
-        const a = AL.find(x => x.id === aid);
-        if (!a) continue;
-        for (const v of a.v) {
-          if (c.includes(v)) {
-            items.push({ingredient:c,status:"danger",allergen:a.label,reason:v===c?`Direct ${a.label.toLowerCase()} allergen`:`Contains "${v}" — ${a.label.toLowerCase()} derivative`});
-            dSet.add(aid); m = true; break;
-          }
-        }
-        if (m) break;
-      }
-    }
-    if (!m) {
-      for (const amb of AMB) {
-        if (c.includes(amb.p)) {
-          const rel = amb.r.filter(a => ua.includes(a));
-          if (rel.length > 0 || amb.r.length === 0) {
-            items.push({ingredient:c,status:"caution",allergen:rel.map(a=>(AL.find(function(x){return x.id===a})||{}).label).filter(Boolean).join(", ")||"Cross-contamination",reason:amb.w});
-            rel.forEach(a => cSet.add(a)); m = true; break;
-          }
-        }
-      }
-    }
-    if (!m) items.push({ingredient:c,status:"safe",allergen:null,reason:"No match"});
-  });
-  let overall = "safe", summary = "";
-  const dangerLabels = [...dSet].map(id => id.startsWith("custom:") ? id.replace("custom:","") : (AL.find(function(a){return a.id===id})||{}).label).filter(Boolean);
-  if (dSet.size > 0) { overall = "danger"; summary = `Contains ${dangerLabels.join(", ")} allergens.`; }
-  else if (cSet.size > 0) { overall = "caution"; summary = "Some ingredients may contain hidden allergen derivatives."; }
-  else summary = "No allergens detected for your profile.";
-  return { overall, items, summary };
-}
+// The matching logic lives in scan-engine.js (pure module, unit-tested via `node --test test/`).
+// runScan(text, allergenIds, customAllergens, declaredAllergenIds) — returns overall "unknown"
+// (never "safe") when the allergen database hasn't loaded, so callers must gate on engine readiness.
+const runScan = (text, ua, customAllergens, declared) => EasyEatsEngine.runScan(text, ua, customAllergens, declared);
+
+// Escape untrusted strings (OSM tags are publicly editable) before HTML interpolation
+const escHtml = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
+// Map OpenFoodFacts allergens_tags onto our allergen ids (label-declared safety net)
+const OFF_TAG_MAP = {
+  "en:milk":"milk", "en:peanuts":"peanuts", "en:nuts":"treenuts", "en:eggs":"eggs",
+  "en:gluten":"wheat", "en:soybeans":"soy", "en:fish":"fish", "en:crustaceans":"shellfish",
+  "en:molluscs":"shellfish", "en:sesame-seeds":"sesame", "en:mustard":"mustard",
+  "en:celery":"celery", "en:sulphur-dioxide-and-sulphites":"sulfites", "en:lupin":"lupin",
+};
 
 // ─── FONTS ───
 if (!document.querySelector('link[href*="Inter"]')) {
@@ -215,9 +166,9 @@ function App() {
   const [chains, setChains] = useState([]);
   const chainsRef = useRef([]);
   const [AL, setAL] = useState([]);
-  const [FP, setFP] = useState([]);
-  const [AMB, setAMB] = useState([]);
-  const [CITIES, setCITIES] = useState([]);
+  const [dataError, setDataError] = useState(false);   // allergen DB failed to load → scanning disabled (fail closed)
+  const [syncError, setSyncError] = useState(false);   // a profile/history write failed → tell the user
+  const [menuCovered, setMenuCovered] = useState(null); // Set of allergen ids actually annotated in chains.json menus
   const [currentUser, setCurrentUser] = useState(null);
   const [prof, setProf] = useState(null);
 
@@ -252,7 +203,6 @@ function App() {
   const [editAllergens, setEditAllergens] = useState([]);
   const [editCustomList, setEditCustomList] = useState([]);
   const [editCustomInput, setEditCustomInput] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -261,10 +211,6 @@ function App() {
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrBad, setOcrBad] = useState(false);
-  const [ocrError, setOcrError] = useState("");
   const [barcodeScanning, setBarcodeScanning] = useState(false);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeError, setBarcodeError] = useState("");
@@ -278,7 +224,7 @@ function App() {
     if (pg !== "scanner") stopBarcodeScanner();
   }, [pg]);
 
-  // Food search state (Edamam via Cloudflare Worker)
+  // Food search state (USDA FoodData Central)
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState([]);
   const [foodLoading, setFoodLoading] = useState(false);
@@ -358,6 +304,12 @@ function App() {
             setEmergencyContact(data.emergencyContact||"");
             setEmergencyPhone(data.emergencyPhone||"");
             try { localStorage.setItem("ee_session", JSON.stringify({ email: fbUser.email, prof: data })); } catch(e) {}
+            // Flush any writes made before auth finished restoring
+            if (pendingSavesRef.current.length) {
+              const merged = Object.assign({}, ...pendingSavesRef.current);
+              pendingSavesRef.current = [];
+              db.collection("users").doc(fbUser.uid).update(merged).catch(() => setSyncError(true));
+            }
           } else {
             localStorage.removeItem("ee_session");
             setCurrentUser(null); setProf(null);
@@ -390,28 +342,36 @@ function App() {
   // Load external data files — serve from localStorage cache for instant load, refresh in background
   useEffect(() => {
     const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-    const loadCached = (key, url, onData) => {
+    const loadCached = (key, url, onData, onFail) => {
+      let served = false;
       try {
         const cached = localStorage.getItem("ee_cache_" + key);
         if (cached) {
           const { data, ts } = JSON.parse(cached);
-          if (Date.now() - ts < CACHE_TTL) { onData(data); }
+          if (Date.now() - ts < CACHE_TTL) { onData(data); served = true; }
         }
       } catch(e) {}
       // Always fetch fresh in background to keep cache warm
       fetch(url).then(r=>r.json()).then(data => {
         onData(data);
         try { localStorage.setItem("ee_cache_" + key, JSON.stringify({ data, ts: Date.now() })); } catch(e) {}
-      }).catch(()=>{});
+      }).catch(() => { if (!served && onFail) onFail(); });
     };
-    loadCached("chains", "chains.json", data => { chainsRef.current = data; setChains(data); });
-    loadCached("allergens", "allergens.json", data => {
-      ALRef.current = data.AL; setAL(data.AL);
-      FPRef.current = data.FP; setFP(data.FP);
-      AMBRef.current = data.AMB; setAMB(data.AMB);
+    loadCached("chains", "chains.json", data => {
+      chainsRef.current = data; setChains(data);
+      const cov = new Set();
+      data.forEach(c => (c.menu||[]).forEach(m => (m.a||[]).forEach(x => cov.add(x))));
+      setMenuCovered(cov);
     });
-    loadCached("cities", "cities.json", data => { CITIESRef.current = data; setCITIES(data); });
+    // key bumped to _v2 so returning visitors pick up the corrected variant/FP data immediately
+    loadCached("allergens_v2", "allergens.json", data => {
+      EasyEatsEngine.setData(data);
+      setAL(data.AL);
+      setDataError(false);
+    }, () => setDataError(true)); // no cache + fetch failed → scanning stays disabled (fail closed)
   }, []);
+
+  const engineReady = AL.length > 0;
 
   // Save user profile - use refs to avoid stale closures
   const profRef = useRef(prof);
@@ -419,13 +379,18 @@ function App() {
   const currentUserRef = useRef(currentUser);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
+  // Writes are queued while Firebase auth hasn't restored yet (the cached-session window)
+  // and flushed once it has — previously they were silently dropped.
+  const pendingSavesRef = useRef([]);
   const saveProf = (updates) => {
-    const fbUser = auth.currentUser;
-    if (!fbUser) return;
     const newProf = { ...profRef.current, ...updates };
     setProf(newProf);
-    db.collection("users").doc(fbUser.uid).update(updates).catch(()=>{});
-    try { localStorage.setItem("ee_session", JSON.stringify({ email: fbUser.email, prof: newProf })); } catch(e) {}
+    const fbUser = auth.currentUser;
+    try { localStorage.setItem("ee_session", JSON.stringify({ email: (fbUser && fbUser.email) || currentUserRef.current, prof: newProf })); } catch(e) {}
+    if (!fbUser) { pendingSavesRef.current.push(updates); return; }
+    db.collection("users").doc(fbUser.uid).update(updates)
+      .then(() => setSyncError(false))
+      .catch(e => { console.error("Profile save failed:", e); setSyncError(true); });
   };
 
   // Auth actions
@@ -463,14 +428,9 @@ function App() {
     if (!email) { setAuthError("Enter your email."); return; }
     if (!p) { setAuthError("Choose a password."); return; }
     if (p.length < 6) { setAuthError("Password must be at least 6 characters."); return; }
-    setAuthLoading(true);
-    try {
-      const methods = await auth.fetchSignInMethodsForEmail(email);
-      if (methods.length > 0) { setAuthError("An account with this email already exists. Log in instead?"); setAuthLoading(false); return; }
-    } catch(e) {
-      if (e.code==="auth/invalid-email") { setAuthError("Invalid email address."); setAuthLoading(false); return; }
-    }
-    setAuthLoading(false);
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setAuthError("Invalid email address."); return; }
+    // Note: no duplicate-email pre-check — Firebase email-enumeration protection makes
+    // fetchSignInMethodsForEmail always return []; duplicates are caught at account creation.
     setAuthMode("setupAllergens");
   };
 
@@ -542,7 +502,7 @@ function App() {
     setAuthUser(""); setAuthPass(""); setAuthName(""); setAuthError("");
     setEditingAllergens(false); setConfirmDelete(false); setDeletePassword(""); setDeleteError("");
     setShowEmergencyEdit(false); setEmergencyContact(""); setEmergencyPhone("");
-    setPhotoPreview(null); setResultStack([]);
+    setResultStack([]);
   };
 
   const doDeleteAccount = async () => {
@@ -578,29 +538,41 @@ function App() {
   // Nav
   const nav = (p, keepState) => { setFade(false); setTimeout(() => { setPg(p); setFade(true); if (!keepState) { setRes(null); setViewChain(null); setViewHist(null); setResultStack([]); } }, 120); };
 
-  const doScan = (text, label, fromPage) => {
+  const doScan = (text, label, fromPage, declared) => {
     if (!prof) return;
     if (!text || !text.trim()) return;
-    const r = runScan(text, prof.allergens, prof.customAllergens);
+    if (!EasyEatsEngine.hasData()) { setDataError(true); return; } // fail closed — never scan without allergen data
+    const r = runScan(text, prof.allergens, prof.customAllergens, declared);
     const autoLabel = label || text.trim().split(/[,;]/)[0].replace(/\([^)]*\)/g,"").trim().slice(0,50);
-    const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length, items: r.items, summary: r.summary };
+    // History stores only the inputs + verdict; per-ingredient results are recomputed
+    // on view (liveResult) so entries stay small and track profile changes.
+    const entry = { id: Date.now(), label: autoLabel, date: new Date().toISOString(), ingredients: text, overall: r.overall, summary: r.summary };
     saveProf({ history: [entry, ...(prof.history||[])].slice(0,50) });
     // Push current result to stack if we're already on results
     if (pg === "results" && res) {
       setResultStack(prev => [...prev, { res, label: resLabel, fromPage: "results" }]);
     } else if (pg === "histDetail" && viewHist) {
-      setResultStack(prev => [...prev, { res: { overall: viewHist.overall, items: viewHist.items, summary: viewHist.summary }, label: viewHist.label, fromPage: "histDetail" }]);
+      const lr = liveResult(viewHist);
+      setResultStack(prev => [...prev, { res: { overall: lr.overall, items: lr.items, summary: lr.summary }, label: viewHist.label, fromPage: "histDetail" }]);
     } else {
       setResultStack([{ res: null, label: "", fromPage: fromPage || pg }]);
     }
     setRes({...r, scannedText: text}); setResLabel(autoLabel); nav("results", true);
   };
 
-  // Re-run scan against current allergens so history stays accurate after profile changes
+  // Re-run scan against current allergens so history stays accurate after profile changes.
+  // Cached per (profile, entry) — home/profile render this for every history row and were
+  // re-scanning the entire history several times per render.
+  const liveCacheRef = useRef({ prof: null, map: new WeakMap() });
   const liveResult = (h) => {
-    if (h.ingredients && prof && prof.allergens) {
+    if (h.ingredients && prof && prof.allergens && EasyEatsEngine.hasData()) {
+      const cache = liveCacheRef.current;
+      if (cache.prof !== prof) { cache.prof = prof; cache.map = new WeakMap(); }
+      if (cache.map.has(h)) return cache.map.get(h);
       const r = runScan(h.ingredients, prof.allergens, prof.customAllergens);
-      return { overall: r.overall, items: r.items, summary: r.summary, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length };
+      const out = { overall: r.overall, items: r.items, summary: r.summary, dc: r.items.filter(i=>i.status==="danger").length, cc: r.items.filter(i=>i.status==="caution").length, sc: r.items.filter(i=>i.status==="safe").length };
+      cache.map.set(h, out);
+      return out;
     }
     return { overall: h.overall, items: h.items||[], summary: h.summary, dc: h.dc||0, cc: h.cc||0, sc: h.sc||0 };
   };
@@ -630,29 +602,11 @@ function App() {
   };
 
 
-  const filteredCities = locInput.trim().length > 0 ? (CITIESRef.current.length ? CITIESRef.current : CITIES).filter(c => c.name.toLowerCase().includes(locInput.toLowerCase())).slice(0,6) : [];
-  const generateNearby = (cityName) => {
-    const citiesList = CITIESRef.current.length ? CITIESRef.current : CITIES;
-    const city = citiesList.find(c => c.name.toLowerCase() === cityName.toLowerCase());
-    const GEN = ["Main St","Broadway","Center St","Market St","Elm St","Park Ave","Oak Dr","Highland Ave","Washington St","Maple Ave","1st Ave","2nd Ave","Mill Rd","Church St","Pine St"];
-    const streets = city ? city.st : GEN;
-    const display = city ? city.name : cityName;
-    const seed = cityName.toLowerCase().split("").reduce((a,c,i) => a + c.charCodeAt(0) * (i+1), 0);
-    const results = [];
-    const chainList = chainsRef.current.length ? chainsRef.current : chains;
-    chainList.forEach((chain, ci) => {
-      const n = 2 + ((seed + ci * 7) % 4); // 2–5 locations per chain
-      for (let j = 0; j < n; j++) {
-        results.push({ ...chain, locId: `${chain.id}-${display}-${j}`, address: `${10+((seed*2+ci*17+j*43)%490)*2} ${streets[(seed*3+ci*13+j*31)%streets.length]}, ${display}`, distance: parseFloat((0.2+((seed*5+ci*11+j*29)%95)/10).toFixed(1)) });
-      }
-    });
-    return results.sort((a,b) => a.distance - b.distance).filter(r => r.distance <= 10);
-  };
-
   // ─── OPENSTREETMAP INTEGRATION ───
+  // Only real OSM data is shown. The old simulated-location generator was removed:
+  // fabricated addresses/distances have no place in a safety app.
   const [locError, setLocError] = useState("");
   const [locLoading, setLocLoading] = useState(false);
-  const [usingRealData, setUsingRealData] = useState(false);
 
   // Haversine distance in miles
   const haversine = (lat1, lon1, lat2, lon2) => {
@@ -663,66 +617,75 @@ function App() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
 
-  // Map OSM names to our chain database
+  // Map OSM names to our chain database.
+  // Matching is deliberately strict: the OSM name must EQUAL the chain name/alias or
+  // START WITH it as a whole word; multi-word aliases may also appear mid-name.
+  // Loose `includes` matching used to label independent restaurants (e.g. "Panda Garden")
+  // with another chain's allergen data \u2014 dangerous, so it's gone.
+  const CHAIN_ALIASES = {
+    mcdonalds:      ["mcdonald", "mcdonalds"],
+    chickfila:      ["chick-fil-a", "chick fil a", "chickfila"],
+    wendys:         ["wendy", "wendys"],
+    arbys:          ["arby", "arbys"],
+    dennys:         ["denny", "dennys"],
+    dominos:        ["domino", "dominos", "dominos pizza"],
+    applebees:      ["applebee", "applebees"],
+    papajohns:      ["papa john", "papa johns"],
+    popeyes:        ["popeye", "popeyes", "popeyes louisiana kitchen"],
+    dairyqueen:     ["dairy queen", "dq"],
+    kfc:            ["kfc", "kentucky fried chicken"],
+    panera:         ["panera", "panera bread"],
+    fiveguys:       ["five guys", "5 guys"],
+    pandaexpress:   ["panda express"],
+    jerseymmikes:   ["jersey mike", "jersey mikes", "jersey mikes subs"],
+    jimmyjohns:     ["jimmy john", "jimmy johns"],
+    buffalowild:    ["buffalo wild wings", "bdubs", "bww"],
+    raisingcanes:   ["raising cane", "raising canes", "canes"],
+    culvers:        ["culver", "culvers"],
+    sonic:          ["sonic", "sonic drive-in", "sonic drive in"],
+    innout:         ["in-n-out", "in n out", "innout", "in-n-out burger"],
+    coldstone:      ["cold stone", "cold stone creamery"],
+    baskinrobbins:  ["baskin", "baskin-robbins", "baskin robbins"],
+    firehouse:      ["firehouse subs"],
+    moes:           ["moes southwest grill", "moes"],
+    elpollo:        ["el pollo loco"],
+    boba:           ["kung fu tea"],
+    modpizza:       ["mod pizza"],
+    blaze:          ["blaze pizza"],
+    tropical:       ["tropical smoothie", "tropical smoothie cafe"],
+    freddys:        ["freddy", "freddys", "freddys frozen custard"],
+    noodles:        ["noodles & company", "noodles and company", "noodles & co"],
+    cookout:        ["cook out", "cookout"],
+    smoothieking:   ["smoothie king"],
+    jackinthebox:   ["jack in the box"],
+    crackerbarrel:  ["cracker barrel"],
+    wafflehouse:    ["waffle house"],
+    olivegarden:    ["olive garden"],
+    chillis:        ["chili", "chilis", "chilis grill & bar"],
+    tacobell:       ["taco bell"],
+    burgerking:     ["burger king"],
+    pizzahut:       ["pizza hut"],
+    shakeshack:     ["shake shack"],
+  };
+  const chainNameMatches = (osm, alias) =>
+    osm === alias || osm.startsWith(alias + " ") || (alias.includes(" ") && osm.includes(alias));
   const matchChain = (osmName) => {
     if (!osmName) return null;
-    const n = osmName.toLowerCase().replace(/['''\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
+    const n = osmName.toLowerCase().replace(/['\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
     const chainList = chainsRef.current.length ? chainsRef.current : chains;
     return chainList.find(ch => {
-      const cn = ch.name.toLowerCase().replace(/['''\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
-      if (n === cn || n.includes(cn) || cn.includes(n)) return true;
-      // Common OSM name variants
-      const aliases = {
-        "mcdonalds":    ["mcdonald"],
-        "chickfila":    ["chick-fil", "chickfil", "chick fil"],
-        "dunkin":       ["dunkin"],
-        "wendys":       ["wendy"],
-        "arbys":        ["arby"],
-        "dennys":       ["denny"],
-        "dominos":      ["domino"],
-        "applebees":    ["applebee"],
-        "papa johns":   ["papa john"],
-        "popeyes":      ["popeye"],
-        "dairy queen":  ["dairy queen","dq"],
-        "starbucks":    ["starbuck"],
-        "subway":       ["subway"],
-        "taco bell":    ["taco bell"],
-        "burger king":  ["burger king"],
-        "pizza hut":    ["pizza hut"],
-        "kfc":          ["kfc","kentucky fried"],
-        "panera bread": ["panera"],
-        "chipotle":     ["chipotle"],
-        "five guys":    ["five guys","5 guys"],
-        "shake shack":  ["shake shack"],
-        "panda express":["panda express","panda"],
-        "jersey mikes": ["jersey mike"],
-        "jimmy johns":  ["jimmy john"],
-        "wingstop":     ["wingstop"],
-        "buffalo wild wings":["buffalo wild","bdubs","bww"],
-        "raising canes":["raising cane","canes"],
-        "culvers":      ["culver"],
-        "whataburger":  ["whataburger"],
-        "sonic drivein":["sonic"],
-        "jack in the box":["jack in the box"],
-        "in-n-out burger":["in-n-out","in n out","innout"],
-        "jamba":        ["jamba"],
-        "smoothie king":["smoothie king"],
-        "cold stone creamery":["cold stone"],
-        "baskinrobbins":["baskin"],
-        "sweetgreen":   ["sweetgreen"],
-      };
-      const key = Object.keys(aliases).find(k => cn.includes(k) || k.includes(cn));
-      if (key) return aliases[key].some(a => n.includes(a));
-      return false;
+      const cn = ch.name.toLowerCase().replace(/['\u2018\u2019]/g,"").replace(/\s+/g," ").trim();
+      if (chainNameMatches(n, cn)) return true;
+      const aliases = CHAIN_ALIASES[ch.id];
+      return aliases ? aliases.some(a => chainNameMatches(n, a)) : false;
     }) || null;
   };
 
   const searchWithOSM = async (locationName) => {
     try {
       // Step 1: Geocode location with Nominatim
-      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}&limit=1&countrycodes=us`, {
-        headers: { "User-Agent": "EasyEats/1.0" }
-      });
+      // (browsers forbid setting User-Agent on fetch — Nominatim identifies us by referer)
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}&limit=1&countrycodes=us`);
       const geoData = await geoRes.json();
       if (!geoData.length) return null;
 
@@ -730,9 +693,11 @@ function App() {
       const lon = parseFloat(geoData[0].lon);
       const displayName = geoData[0].display_name.split(",").slice(0,2).join(",").trim();
 
-      // Step 2: Query Overpass for restaurants/fast food within ~10 miles (16km)
-      // Try primary then mirror — if both fail, return geocode coords with empty results so map still shows
-      const overpassQuery = `[out:json][timeout:25];(node["amenity"="fast_food"](around:16000,${lat},${lon});node["amenity"="restaurant"](around:16000,${lat},${lon});node["amenity"="cafe"](around:16000,${lat},${lon});node["amenity"="ice_cream"](around:16000,${lat},${lon});node["amenity"="food_court"](around:16000,${lat},${lon}););out body 2000;`;
+      // Step 2: Query Overpass for restaurants/fast food within ~10 miles (16km).
+      // nwr (nodes + ways + relations) — many restaurants are mapped as building ways,
+      // node-only queries missed them. `out center` gives ways/relations a usable coordinate.
+      // Try primary then mirror — if both fail, return geocode coords with empty results so map still shows.
+      const overpassQuery = `[out:json][timeout:25];nwr["amenity"~"^(fast_food|restaurant|cafe|ice_cream|food_court)$"](around:16000,${lat},${lon});out center 2000;`;
       const overpassEndpoints = [
         `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
         `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
@@ -759,7 +724,12 @@ function App() {
         const chain = matchChain(name);
         if (!chain) return;
 
-        const dist = haversine(lat, lon, el.lat, el.lon);
+        // ways/relations carry coords in el.center (from `out center`)
+        const elat = el.lat !== undefined ? el.lat : (el.center && el.center.lat);
+        const elon = el.lon !== undefined ? el.lon : (el.center && el.center.lon);
+        if (elat === undefined || elon === undefined) return;
+
+        const dist = haversine(lat, lon, elat, elon);
         if (dist > 10) return;
 
         const street = (el.tags&&el.tags["addr:street"]) || "";
@@ -767,7 +737,7 @@ function App() {
         const city = (el.tags&&el.tags["addr:city"]) || displayName;
         const addr = houseNum && street ? `${houseNum} ${street}, ${city}` : street ? `${street}, ${city}` : city;
 
-        const locKey = `${chain.id}-${el.id}`;
+        const locKey = `${chain.id}-${el.type||"n"}${el.id}`; // node/way ids can collide numerically
         if (seen.has(locKey)) return;
         seen.add(locKey);
 
@@ -777,8 +747,8 @@ function App() {
           address: addr,
           distance: parseFloat(dist.toFixed(1)),
           osmId: el.id,
-          lat: el.lat,
-          lon: el.lon,
+          lat: elat,
+          lon: elon,
         });
       });
 
@@ -791,49 +761,19 @@ function App() {
   const searchLocation = async (cn) => {
     const n = cn || locInput.trim();
     if (!n) return;
-    setLocError(""); setLocLoading(true); setShowSuggestions(false);
+    setLocError(""); setLocLoading(true);
 
-    // Try real OSM data first
     const osmResult = await searchWithOSM(n);
-    if (osmResult) {
-      // Always use geocoded coordinates for the map
-      setMapCenter(osmResult.center);
-      setLocSet(osmResult.displayName);
-      setLocInput(osmResult.displayName);
-      if (osmResult.results.length > 0) {
-        setNearbyResults(osmResult.results);
-        setUsingRealData(true);
-        setLocLoading(false);
-        return;
-      }
-      // Geocoded OK but no chain matches nearby — show simulated menu data at real location
-      setUsingRealData(false);
-      setNearbyResults(generateNearby(osmResult.displayName));
+    if (!osmResult) {
+      // Geocode failed or no network — say so honestly instead of inventing locations
+      setLocError("Couldn't find that location — check the spelling, or try a nearby city or zip code.");
       setLocLoading(false);
       return;
     }
-
-    // Full fallback (no network / geocode failed) — simulated data only
-    setUsingRealData(false);
-    const citiesFallback = CITIESRef.current.length ? CITIESRef.current : CITIES;
-    const match = citiesFallback.find(c => c.name.toLowerCase() === n.toLowerCase());
-    if (!match) {
-      const partials = citiesFallback.filter(c => c.name.toLowerCase().includes(n.toLowerCase()));
-      if (partials.length === 1) {
-        setLocSet(partials[0].name); setLocInput(partials[0].name);
-        setNearbyResults(generateNearby(partials[0].name));
-        setLocLoading(false); return;
-      }
-      if (n.length >= 3) {
-        setLocSet(n); setLocInput(n);
-        setNearbyResults(generateNearby(n));
-        setLocLoading(false); return;
-      }
-      setLocError("Location not found. Try a city name or zip code.");
-      setLocLoading(false); return;
-    }
-    setLocSet(match.name); setLocInput(match.name);
-    setNearbyResults(generateNearby(match.name));
+    setMapCenter(osmResult.center);
+    setLocSet(osmResult.displayName);
+    setLocInput(osmResult.displayName);
+    setNearbyResults(osmResult.results); // may be empty — the UI shows an honest empty state
     setLocLoading(false);
   };
 
@@ -850,7 +790,6 @@ function App() {
         window.ZXing.BarcodeFormat.EAN_13, window.ZXing.BarcodeFormat.EAN_8,
         window.ZXing.BarcodeFormat.UPC_A, window.ZXing.BarcodeFormat.UPC_E,
         window.ZXing.BarcodeFormat.CODE_128, window.ZXing.BarcodeFormat.CODE_39,
-        window.ZXing.BarcodeFormat.QR_CODE,
       ]);
       const reader = new window.ZXing.BrowserMultiFormatReader(hints);
       barcodeReaderRef.current = reader;
@@ -882,74 +821,31 @@ function App() {
       const resp = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await resp.json();
       if (data.status !== 1 || !data.product) {
-        setBarcodeError("This barcode isn't in our database. Try the Search tab to look it up by name instead.");
+        setBarcodeError("This barcode isn't in the OpenFoodFacts database. Try the Search tab to look it up by name instead.");
         setBarcodeLoading(false);
         return;
       }
       const product = data.product;
-      const name = product.product_name || product.brands || "Unknown Product";
-      const ingredients = product.ingredients_text;
+      const name = product.product_name_en || product.product_name || product.brands || "Unknown Product";
+      // Only scan an ENGLISH ingredient list — our allergen variants are English, so a
+      // French/German label would previously scan as all-safe. Fail closed instead.
+      const ingredients = product.ingredients_text_en
+        || ((product.lang === "en" || product.lc === "en") ? product.ingredients_text : null);
       if (!ingredients) {
-        setBarcodeError("Product found but no ingredient list available. Try searching by name.");
+        setBarcodeError(product.ingredients_text
+          ? "This product's ingredient list isn't available in English, so it can't be scanned reliably. Check the physical label."
+          : "Product found but no ingredient list available. Try searching by name.");
         setBarcodeLoading(false);
         return;
       }
+      // Label-declared allergens (language-independent) as a safety net for the text scan
+      const declared = (product.allergens_tags || []).map(t => OFF_TAG_MAP[t]).filter(Boolean);
       setBarcodeLoading(false);
-      doScan(ingredients, name);
+      doScan(ingredients, name, undefined, declared);
     } catch(e) {
       setBarcodeError("Lookup failed. Check your connection.");
       setBarcodeLoading(false);
     }
-  };
-
-  // Photo upload handler — uses Claude Vision via Cloudflare Worker
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      // Convert any format (including HEIC) to JPEG via canvas
-      const toJpeg = (src) => new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          canvas.getContext("2d").drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/jpeg", 0.92));
-        };
-        img.onerror = () => resolve(src); // fallback to original
-        img.src = src;
-      });
-      const dataUrl = await toJpeg(ev.target.result);
-      setPhotoPreview(dataUrl);
-      setOcrLoading(true);
-      setOcrBad(false);
-      setOcrError("");
-      setTxt("");
-      setPhotoLabel("");
-      try {
-        const base64 = dataUrl.split(",")[1];
-        const resp = await fetch(`${WORKER_URL}/api/ocr`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, mediaType: "image/jpeg" }),
-        });
-        const data = await resp.json();
-        if (data.error || data.ingredients == null) {
-          setOcrBad(true);
-          setOcrError(data.error || "No ingredients found");
-        } else {
-          setTxt(data.ingredients);
-          setPhotoLabel(data.name || "");
-          setOcrBad(false);
-        }
-      } catch(err) {
-        setOcrBad(true);
-      }
-      setOcrLoading(false);
-    };
-    reader.readAsDataURL(file);
   };
 
   // Share results as image
@@ -989,6 +885,7 @@ function App() {
   useEffect(() => { nearbyResultsRef.current = nearbyResults; }, [nearbyResults]);
   useEffect(() => {
     window._easyEatsNavChain = (locId) => {
+      locId = decodeURIComponent(locId);
       const r = nearbyResultsRef.current.find(x => x.locId === locId);
       if (r) { setViewChain(r); nav("chain", true); }
     };
@@ -1008,8 +905,9 @@ function App() {
       nearbyResults.forEach(r => {
         if (r.lat && r.lon) {
           const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
+          // name/address come from publicly-editable OSM tags — escape before HTML interpolation
           L.marker([r.lat, r.lon]).addTo(map)
-            .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b style="font-size:13px;color:#0A0A0A">${r.name}</b><br/><span style="font-size:11px;color:#6B7280">${r.address}</span><br/><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><button onclick="window._easyEatsNavChain('${r.locId}')" style="background:#0052FF;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;text-align:center">View Menu →</button><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#0052FF;text-decoration:none;font-weight:600;text-align:center">Get Directions ↗</a></div></div>`);
+            .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b style="font-size:13px;color:#0A0A0A">${escHtml(r.name)}</b><br/><span style="font-size:11px;color:#6B7280">${escHtml(r.address)}</span><br/><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><button onclick="window._easyEatsNavChain('${escHtml(encodeURIComponent(r.locId))}')" style="background:#0052FF;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;text-align:center">View Menu →</button><a href="${mapsUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#0052FF;text-decoration:none;font-weight:600;text-align:center">Get Directions ↗</a></div></div>`);
         }
       });
       mapInstanceRef.current = map;
@@ -1026,7 +924,8 @@ function App() {
     setNutDetail(null);
     setNutDetailLoading(true);
     const controller = new AbortController();
-    const ingr = nutSelected.ingredients.split(",").map(s => s.trim()).filter(s => s.length > 1);
+    // same paren-aware split as the scan engine so "flavor (a, b)" stays one item
+    const ingr = nutSelected.ingredients.replace(/\([^)]*\)/g, m => m.replace(/,/g, "§")).split(/[,;]/).map(s => s.replace(/§/g, ",").trim()).filter(s => s.length > 1);
     fetch(`${WORKER_URL}/api/nutrition-details`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1053,20 +952,24 @@ function App() {
     return { label: f.description || "", brand: f.brandOwner || null, ingredients: f.ingredients || null, nutrients: nutMap };
   }).filter(h => h.label.trim());
 
+  const nutReqRef = useRef(0);
   const searchNutrition = async () => {
     const q = nutQuery.trim();
     if (!q) return;
+    const reqId = ++nutReqRef.current; // ignore out-of-order responses from older searches
     setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null); setNutPage(1); setNutHasMore(false);
     try {
       const resp = await fetch(
         `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
       );
       const data = await resp.json();
+      if (reqId !== nutReqRef.current) return;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const hits = mapNutHits(data.foods);
       if (hits.length === 0) setNutError("No results found. Try a different search term.");
       else { setNutResults(hits); setNutHasMore((data.totalHits || 0) > 8); }
     } catch(e) {
+      if (reqId !== nutReqRef.current) return;
       setNutError("Search failed. Check your connection and try again.");
     }
     setNutLoading(false);
@@ -1092,9 +995,11 @@ function App() {
   };
 
   // Food search via USDA FoodData Central (branded foods with ingredient lists)
+  const foodReqRef = useRef(0);
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
     if (!q) return;
+    const reqId = ++foodReqRef.current; // ignore out-of-order responses from older searches
     setFoodLoading(true);
     setFoodError("");
     setFoodResults([]);
@@ -1106,6 +1011,7 @@ function App() {
         `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
       );
       const data = await resp.json();
+      if (reqId !== foodReqRef.current) return;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const hits = (data.foods || [])
         .map(f => ({
@@ -1121,6 +1027,7 @@ function App() {
         setFoodHasMore((data.totalHits || 0) > 8);
       }
     } catch(e) {
+      if (reqId !== foodReqRef.current) return;
       setFoodError("Search failed. Check your connection and try again.");
     }
     setFoodLoading(false);
@@ -1160,7 +1067,7 @@ function App() {
     } else {
       // No ingredient list in database — prompt user to scan the physical label
       setPhotoLabel(name);
-      setPhotoPreview(null); setOcrBad(false); setTxt("");
+      setTxt("");
       setScannerTab("photo");
       setFoodNoIngredients(name);
     }
@@ -1313,7 +1220,7 @@ function App() {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
           <div style={{display:"flex",gap:"2px",padding:"5px 10px",background:S.card,borderRadius:"20px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>{prof.allergens.slice(0,4).map(id=><span key={id} style={{fontSize:"14px"}}>{(AL.find(function(a){return a.id===id})||{}).icon}</span>)}{prof.allergens.length>4&&<span style={{fontSize:"10px",color:S.mut,alignSelf:"center",marginLeft:"2px",fontWeight:600}}>+{prof.allergens.length-4}</span>}</div>
-          <div onClick={()=>nav("profile")} style={{width:"32px",height:"32px",borderRadius:"50%",background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:S.shadowBlue}}>{prof.name.charAt(0).toUpperCase()}</div>
+          <button onClick={()=>nav("profile")} aria-label="Your profile" style={{width:"32px",height:"32px",borderRadius:"50%",border:"none",padding:0,background:S.pGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:700,color:"#fff",cursor:"pointer",boxShadow:S.shadowBlue,fontFamily:S.f}}>{(prof.name||"?").charAt(0).toUpperCase()}</button>
         </div>
       </header>
 
@@ -1431,6 +1338,7 @@ function App() {
             <summary style={{fontSize:"11px",color:S.mut,cursor:"pointer",fontWeight:700,letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:S.mono}}>View full ingredient list</summary>
             <div style={{marginTop:"10px",padding:"14px 16px",borderRadius:"12px",background:S.card,border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,lineHeight:1.75,fontFamily:S.mono,boxShadow:S.shadowSm}}>{viewHist.ingredients}</div>
           </details>}
+          <div style={{marginTop:"14px",padding:"10px 14px",borderRadius:"10px",background:S.card2,fontSize:"10px",color:S.mut,lineHeight:1.6,textAlign:"center"}}>Always verify the physical label — ingredient data can be incomplete or outdated, and cross-contamination can't be detected from ingredient lists. Not medical advice.</div>
           </div>{/* end histDetail share capture */}
         </div>);})()}
 
@@ -1438,6 +1346,11 @@ function App() {
         {pg==="scanner"&&<div style={{animation:"fadeUp 0.3s ease both"}}>
           <h1 style={{fontFamily:S.sf,fontSize:"26px",fontWeight:400,color:S.text,margin:"0 0 4px",letterSpacing:"-0.3px"}}>Ingredient Scanner</h1>
           <p style={{color:S.mut,fontSize:"13px",marginBottom:"18px",lineHeight:1.5}}>Scan a barcode, search by name, or paste ingredients manually.</p>
+
+          {/* Fail closed: no allergen data → no scanning. Never silently report "safe". */}
+          {!engineReady&&<div style={{background:S.rbg,border:`1.5px solid ${S.rbrd}`,borderRadius:"14px",padding:"14px 16px",marginBottom:"16px",fontSize:"13px",color:S.r,fontWeight:600,lineHeight:1.5}}>
+            {dataError?"⚠️ The allergen database couldn't load, so scanning is disabled — results without it would be unreliable. Check your connection and reload the page.":"⏳ Loading allergen database…"}
+          </div>}
 
           {/* Tab bar */}
           <div style={{display:"flex",gap:"5px",marginBottom:"18px",background:S.card,borderRadius:"14px",padding:"5px",border:`1px solid ${S.brd}`,boxShadow:S.shadowSm}}>
@@ -1468,7 +1381,7 @@ function App() {
                 <div style={{fontSize:"40px",marginBottom:"12px"}}>📦</div>
                 <div style={{fontSize:"15px",color:S.text,fontWeight:600,marginBottom:"6px",fontFamily:S.sf,fontWeight:400}}>Scan a Barcode</div>
                 <div style={{fontSize:"13px",color:S.mut,marginBottom:"20px",lineHeight:1.5}}>Point your camera at the barcode on the product</div>
-                <button onClick={startBarcodeScanner} style={{padding:"12px 30px",background:S.pGrad,border:"none",borderRadius:"12px",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue}}>Start Scanner</button>
+                <button onClick={startBarcodeScanner} disabled={!engineReady} style={{padding:"12px 30px",background:engineReady?S.pGrad:"#F3F4F6",border:"none",borderRadius:"12px",color:engineReady?"#fff":S.mut2,fontSize:"14px",fontWeight:700,cursor:engineReady?"pointer":"default",fontFamily:S.f,boxShadow:engineReady?S.shadowBlue:"none"}}>Start Scanner</button>
               </div>
             ) : (
               <div style={{marginBottom:"16px"}}>
@@ -1541,12 +1454,12 @@ function App() {
               style={{width:"100%",minHeight:"140px",padding:"16px",background:S.card,border:`1.5px solid ${S.brd}`,borderRadius:"16px",color:S.text,fontFamily:S.f,fontSize:"14px",lineHeight:1.65,resize:"vertical",boxSizing:"border-box",boxShadow:S.shadowSm}} />
           </div>}
 
-          {/* Scan button */}
-          {txt.trim()&&!ocrBad&&<button onClick={()=>doScan(txt, photoLabel.trim()||"")}
+          {/* Scan button — manual tab only (it acts on the manual textarea) */}
+          {scannerTab==="manual"&&txt.trim()&&engineReady&&<button onClick={()=>doScan(txt, photoLabel.trim()||"")}
             style={{width:"100%",padding:"16px",background:S.pGrad,border:"none",borderRadius:"14px",color:"#fff",fontSize:"15px",fontWeight:700,cursor:"pointer",fontFamily:S.f,boxShadow:S.shadowBlue,letterSpacing:"-0.2px"}}>
             🔬 Scan for Allergens
           </button>}
-          {!txt.trim()&&scannerTab!=="search"&&<button disabled
+          {scannerTab==="manual"&&(!txt.trim()||!engineReady)&&<button disabled
             style={{width:"100%",padding:"16px",background:"#F3F4F6",border:`1px solid ${S.brd}`,borderRadius:"14px",color:S.mut2,fontSize:"15px",fontWeight:700,cursor:"default",fontFamily:S.f}}>
             🔬 Scan for Allergens
           </button>}
@@ -1611,6 +1524,7 @@ function App() {
             <summary style={{fontSize:"11px",color:S.mut,cursor:"pointer",fontWeight:700,letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:S.mono}}>View full ingredient list</summary>
             <div style={{marginTop:"10px",padding:"14px 16px",borderRadius:"12px",background:S.card,border:`1px solid ${S.brd}`,fontSize:"12px",color:S.mut,lineHeight:1.75,fontFamily:S.mono,boxShadow:S.shadowSm}}>{res.scannedText}</div>
           </details>}
+          <div style={{marginTop:"14px",padding:"10px 14px",borderRadius:"10px",background:S.card2,fontSize:"10px",color:S.mut,lineHeight:1.6,textAlign:"center"}}>Always verify the physical label — ingredient data can be incomplete or outdated, and cross-contamination can't be detected from ingredient lists. Not medical advice.</div>
           </div>{/* end share capture */}
         </div>}
 
@@ -1635,6 +1549,9 @@ function App() {
                 <div style={{fontSize:"20px",fontWeight:400,color:S.text,fontFamily:S.sf,marginBottom:"2px",letterSpacing:"-0.2px"}}>{nutSelected.label}</div>
                 {nutSelected.brand&&<div style={{fontSize:"12px",color:S.mut,marginBottom:"14px",fontFamily:S.mono}}>{nutSelected.brand}</div>}
                 {(()=>{
+                  if (!engineReady) return (
+                    <div style={{padding:"14px",borderRadius:"12px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"14px",fontSize:"12px",color:S.y,fontWeight:600}}>⚠️ Allergen database not loaded — this item can't be checked right now.</div>
+                  );
                   const scanText = nutSelected.ingredients || nutSelected.label;
                   const scan = runScan(scanText, prof.allergens, prof.customAllergens);
                   const color = scan.overall==="safe"?S.g:scan.overall==="caution"?S.y:S.r;
@@ -1715,16 +1632,16 @@ function App() {
             <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
               {nutResults.map((item,i)=>{
                 const cal = item.nutrients.ENERC_KCAL ? Math.round(item.nutrients.ENERC_KCAL)+"kcal" : null;
-                const sr = runScan(item.ingredients||item.label, prof.allergens, prof.customAllergens);
+                const sr = engineReady ? runScan(item.ingredients||item.label, prof.allergens, prof.customAllergens) : null;
                 return(
                   <button key={i} onClick={()=>setNutSelected(item)}
-                    style={{padding:"13px 16px",background:S.card,border:`1px solid ${sbrd(sr.overall)}`,borderRadius:"14px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",display:"flex",alignItems:"center",gap:"12px",width:"100%",boxShadow:S.shadowSm}}>
+                    style={{padding:"13px 16px",background:S.card,border:`1px solid ${sr?sbrd(sr.overall):S.brd}`,borderRadius:"14px",cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",display:"flex",alignItems:"center",gap:"12px",width:"100%",boxShadow:S.shadowSm}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:600,fontSize:"14px",color:S.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</div>
                       <div style={{fontSize:"11px",color:S.mut,marginTop:"3px",fontFamily:S.mono}}>{item.brand||"Food item"}{cal&&<span style={{marginLeft:"8px",color:S.y,fontWeight:600}}>{cal}</span>}</div>
                     </div>
                     {item.ingredients
-                    ? <span style={{fontSize:"16px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>
+                    ? (sr?<span style={{fontSize:"16px"}}>{sr.overall==="safe"?"✅":sr.overall==="caution"?"⚠️":"🚫"}</span>:<span style={{fontSize:"11px",color:S.mut2,fontFamily:S.mono,fontWeight:600}}>—</span>)
                     : <span style={{fontSize:"11px",color:S.mut2,fontFamily:S.mono,fontWeight:600}}>NO LIST</span>}
                     <span style={{fontSize:"13px",color:S.mut2}}>→</span>
                   </button>
@@ -1749,22 +1666,13 @@ function App() {
           <p style={{color:S.mut,fontSize:"13px",marginBottom:"18px",lineHeight:1.5}}>Search any US location to find real nearby restaurants with menus filtered by your allergens.</p>
           <div style={{position:"relative",marginBottom:"16px"}}>
             <div style={{display:"flex",gap:"8px"}}>
-              <input value={locInput} onChange={e=>{setLocInput(e.target.value);setShowSuggestions(true);setLocError("");if(locSet)setLocSet("");}} onFocus={()=>{if(!locSet)setShowSuggestions(true);}} placeholder="City, address, or zip code" onKeyDown={e=>{if(e.key==="Enter"){searchLocation();setShowSuggestions(false);}}} disabled={locLoading}
+              <input value={locInput} onChange={e=>{setLocInput(e.target.value);setLocError("");if(locSet)setLocSet("");}} placeholder="City, address, or zip code" onKeyDown={e=>{if(e.key==="Enter")searchLocation();}} disabled={locLoading}
                 style={{flex:1,padding:"13px 14px",background:S.card,border:`1.5px solid ${locError?S.rbrd:S.brd}`,borderRadius:"14px",color:S.text,fontSize:"14px",fontFamily:S.f,boxSizing:"border-box",opacity:locLoading?0.5:1,boxShadow:S.shadowSm}} />
               <button onClick={()=>searchLocation()} disabled={!locInput.trim()||locLoading}
                 style={{padding:"13px 18px",background:locInput.trim()&&!locLoading?S.pGrad:"#F3F4F6",border:"none",borderRadius:"14px",color:locInput.trim()&&!locLoading?"#fff":S.mut2,fontWeight:700,cursor:locInput.trim()&&!locLoading?"pointer":"default",fontFamily:S.f,fontSize:"14px",whiteSpace:"nowrap",boxShadow:locInput.trim()&&!locLoading?S.shadowBlue:"none"}}>
                 {locLoading?"Searching...":"📍 Search"}
               </button>
             </div>
-            {showSuggestions&&filteredCities.length>0&&(
-              <div style={{position:"absolute",top:"56px",left:0,right:0,background:S.card,border:`1px solid ${S.brd}`,borderRadius:"14px",overflow:"hidden",zIndex:50,boxShadow:S.shadowMd}}>
-                {filteredCities.map(c=>(
-                  <button key={c.name} onClick={()=>searchLocation(c.name)} style={{width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:`1px solid ${S.brd}`,color:S.text,fontSize:"14px",fontFamily:S.f,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"8px"}}>
-                    <span style={{color:S.p}}>📍</span>{c.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           {locError&&<div style={{marginTop:"-8px",marginBottom:"14px",padding:"11px 14px",borderRadius:"10px",background:S.rbg,border:`1px solid ${S.rbrd}`,color:S.r,fontSize:"13px"}}>{locError}</div>}
           {locLoading&&<div style={{marginBottom:"14px",padding:"18px",borderRadius:"14px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",boxShadow:S.shadowSm}}>
@@ -1773,41 +1681,47 @@ function App() {
           </div>}
           {locSet&&!locLoading&&<>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-              <div style={{fontSize:"12px",color:S.p,fontWeight:700,display:"flex",alignItems:"center",gap:"6px"}}>📍 Near "{locSet}" — {nearbyResults.length} locations {usingRealData&&<span style={{fontSize:"10px",color:S.g,background:S.gbg,border:`1px solid ${S.gbrd}`,padding:"1px 7px",borderRadius:"10px",fontFamily:S.mono}}>live</span>}</div>
-              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setShowSuggestions(false);setLocError("");setUsingRealData(false);setMapCenter(null);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Clear</button>
+              <div style={{fontSize:"12px",color:S.p,fontWeight:700,display:"flex",alignItems:"center",gap:"6px"}}>📍 Near "{locSet}" — {nearbyResults.length} location{nearbyResults.length!==1?"s":""}</div>
+              <button onClick={()=>{setLocSet("");setNearbyResults([]);setLocInput("");setLocError("");setMapCenter(null);}} style={{background:"none",border:"none",color:S.mut,fontSize:"11px",cursor:"pointer",fontFamily:S.f,fontWeight:600}}>Clear</button>
             </div>
-            {mapCenter&&<div ref={mapRef} style={{height:"230px",borderRadius:"16px",marginBottom:"16px",overflow:"hidden",border:`1px solid ${S.brd}`,zIndex:0,boxShadow:S.shadowSm}} />}
+            {mapCenter&&nearbyResults.length>0&&<div ref={mapRef} style={{height:"230px",borderRadius:"16px",marginBottom:"16px",overflow:"hidden",border:`1px solid ${S.brd}`,zIndex:0,boxShadow:S.shadowSm}} />}
+            {nearbyResults.length===0&&<div style={{padding:"20px",borderRadius:"16px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"16px",fontSize:"13px",color:S.y,fontWeight:500,lineHeight:1.55}}>
+              No restaurants from our chain database were found on OpenStreetMap within 10 miles of this location. You can still browse every chain's allergen menu below.
+            </div>}
             {nearbyResults.map(nr=>{
-              const {safe,danger,pct}=chainScore(nr);
-              const color=pct>=70?S.g:pct>=40?S.y:S.r;
-              const bg=pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
-              const brd=pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
+              const cs=chainScore(nr);
+              const pct=cs.pct;
+              const color=cs.customOnly?S.mut:pct>=70?S.g:pct>=40?S.y:S.r;
+              const bg=cs.customOnly?S.card2:pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
+              const brd=cs.customOnly?S.brd:pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
               return(<button key={nr.locId} onClick={()=>{setViewChain(nr);nav("chain",true);}} style={{padding:"14px 16px",marginBottom:"7px",borderRadius:"16px",background:S.card,border:`1px solid ${S.brd}`,cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"12px",boxShadow:S.shadowSm}}>
                 <span style={{fontSize:"28px"}}>{nr.icon}</span>
                 <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:"14px",color:S.text}}>{nr.name}</div><div style={{fontSize:"11px",color:S.mut,marginTop:"2px",fontFamily:S.mono}}>{nr.address} · {nr.distance} mi</div></div>
-                <div style={{textAlign:"right",flexShrink:0,padding:"6px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"10px"}}><div style={{fontSize:"18px",fontWeight:400,fontFamily:S.sf,color}}>{pct}%</div><div style={{fontSize:"9px",color,fontWeight:700,textTransform:"uppercase",fontFamily:S.mono}}>safe</div></div>
+                <div style={{textAlign:"right",flexShrink:0,padding:"6px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"10px"}}><div style={{fontSize:"18px",fontWeight:400,fontFamily:S.sf,color}}>{cs.customOnly?"—":pct+"%"}</div><div style={{fontSize:"9px",color,fontWeight:700,textTransform:"uppercase",fontFamily:S.mono}}>{cs.customOnly?"unknown":"safe"}</div></div>
               </button>);
             })}
           </>}
-          {!locSet&&!locLoading&&<>
+          {!locSet&&!locLoading&&
             <div style={{padding:"32px 24px",borderRadius:"20px",background:S.card,border:`1px solid ${S.brd}`,textAlign:"center",marginBottom:"20px",boxShadow:S.shadowSm}}>
               <div style={{fontSize:"44px",marginBottom:"10px"}}>📍</div>
               <div style={{fontSize:"15px",color:S.mut,lineHeight:1.6}}>Search any city, address, or zip code to find real restaurants near you</div>
-            </div>
+            </div>}
+          {(!locSet||nearbyResults.length===0)&&!locLoading&&<>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}>
               <div style={{height:"1px",flex:1,background:S.brd}} />
               <span style={{fontSize:"11px",color:S.mut,textTransform:"uppercase",letterSpacing:"1px",fontFamily:S.mono,fontWeight:600}}>All chains</span>
               <div style={{height:"1px",flex:1,background:S.brd}} />
             </div>
             {[...chains].sort((a,b)=>chainScore(b).pct-chainScore(a).pct).map(ch=>{
-              const {safe,danger,pct}=chainScore(ch);
-              const color=pct>=70?S.g:pct>=40?S.y:S.r;
-              const bg=pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
-              const brd=pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
+              const cs=chainScore(ch);
+              const pct=cs.pct;
+              const color=cs.customOnly?S.mut:pct>=70?S.g:pct>=40?S.y:S.r;
+              const bg=cs.customOnly?S.card2:pct>=70?S.gbg:pct>=40?S.ybg:S.rbg;
+              const brd=cs.customOnly?S.brd:pct>=70?S.gbrd:pct>=40?S.ybrd:S.rbrd;
               return(<button key={ch.id} onClick={()=>{setViewChain(ch);nav("chain",true);}} style={{padding:"13px 16px",marginBottom:"5px",borderRadius:"14px",background:S.card,border:`1px solid ${S.brd}`,cursor:"pointer",fontFamily:S.f,color:S.text,textAlign:"left",width:"100%",display:"flex",alignItems:"center",gap:"10px",boxShadow:S.shadowSm}}>
                 <span style={{fontSize:"26px"}}>{ch.icon}</span>
-                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:"14px",color:S.text}}>{ch.name}</div><div style={{fontSize:"11px",color:S.mut,fontFamily:S.mono}}>{safe} safe · {danger} allergens</div></div>
-                <div style={{padding:"4px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"8px"}}><div style={{fontSize:"16px",fontWeight:400,fontFamily:S.sf,color,textAlign:"center"}}>{pct}%</div></div>
+                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:"14px",color:S.text}}>{ch.name}</div><div style={{fontSize:"11px",color:S.mut,fontFamily:S.mono}}>{cs.customOnly?"can't check custom allergens":`${cs.safe} safe · ${cs.danger} allergens`}</div></div>
+                <div style={{padding:"4px 10px",background:bg,border:`1px solid ${brd}`,borderRadius:"8px"}}><div style={{fontSize:"16px",fontWeight:400,fontFamily:S.sf,color,textAlign:"center"}}>{cs.customOnly?"—":pct+"%"}</div></div>
               </button>);
             })}
           </>}
@@ -1837,16 +1751,22 @@ function App() {
               <div style={{fontSize:"12px",fontWeight:700,color:S.g,whiteSpace:"nowrap"}}>Open in Maps</div>
             </a>}
           </div>
-          {(prof.allergens.length===0&&(prof.customAllergens||[]).length>0)&&<div style={{padding:"12px 14px",borderRadius:"12px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"16px",fontSize:"13px",color:S.y,fontWeight:600,lineHeight:1.5}}>
-            ⚠️ Menu data only covers common allergens. Your custom allergens ({(prof.customAllergens||[]).join(", ")}) can't be checked from this list — use the allergen info link above to verify with the restaurant directly.
-          </div>}
+          {/* Coverage honesty: warn about EVERY allergen this menu data can't check —
+              custom allergens and any built-in ids never annotated in chains.json */}
+          {(()=>{
+            const uncoveredBuiltin = menuCovered ? prof.allergens.filter(a=>!menuCovered.has(a)).map(a=>(AL.find(x=>x.id===a)||{}).label).filter(Boolean) : [];
+            const uncovered = [...uncoveredBuiltin, ...(prof.customAllergens||[])];
+            return uncovered.length>0 ? <div style={{padding:"12px 14px",borderRadius:"12px",background:S.ybg,border:`1px solid ${S.ybrd}`,marginBottom:"16px",fontSize:"13px",color:S.y,fontWeight:600,lineHeight:1.5}}>
+              ⚠️ This menu data can't check for: {uncovered.join(", ")}. Items below aren't verified for {uncovered.length>1?"those allergens":"that allergen"} — confirm with the restaurant or the official allergen page above.
+            </div> : null;
+          })()}
           <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}>
             <div style={{height:"1px",flex:1,background:S.brd}}/>
             <span style={{fontSize:"10px",color:S.mut,fontFamily:S.mono,fontWeight:600,textTransform:"uppercase",letterSpacing:"1px"}}>Quick preview · {viewChain.menu.length} items</span>
             <div style={{height:"1px",flex:1,background:S.brd}}/>
           </div>
           {viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length>0&&<>
-            <h3 style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"9px",fontFamily:S.mono,fontWeight:700}}>✓ Safe for You ({viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length})</h3>
+            <h3 style={{fontSize:"11px",color:S.g,textTransform:"uppercase",letterSpacing:"1px",marginBottom:"9px",fontFamily:S.mono,fontWeight:700}}>✓ No Listed Allergens ({viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).length})</h3>
             {viewChain.menu.filter(m=>!m.a.some(a=>prof.allergens.includes(a))).map((m,i)=>(
               <div key={i} style={{padding:"12px 14px",marginBottom:"5px",borderRadius:"12px",background:S.gbg,border:`1px solid ${S.gbrd}`,display:"flex",alignItems:"center",gap:"10px"}}>
                 <span style={{color:S.g,fontSize:"15px",fontWeight:700}}>✓</span>
@@ -1865,6 +1785,7 @@ function App() {
               </div>);
             })}
           </>}
+          <div style={{marginTop:"16px",padding:"10px 14px",borderRadius:"10px",background:S.card2,fontSize:"10px",color:S.mut,lineHeight:1.6,textAlign:"center"}}>Menu allergen data is approximate and recipes change — always confirm with restaurant staff before ordering. Cross-contamination is possible in any kitchen. Not medical advice.</div>
         </div>}
 
         {/* ═══ PROFILE ═══ */}
@@ -2012,6 +1933,12 @@ function App() {
           }
         </div>}
       </main>
+
+      {/* Sync-failure toast — profile/history writes used to fail silently */}
+      {syncError&&<div role="alert" style={{position:"fixed",bottom:"84px",left:"50%",transform:"translateX(-50%)",background:"#1F2937",color:"#fff",padding:"10px 16px",borderRadius:"12px",fontSize:"12px",fontWeight:600,zIndex:200,boxShadow:S.shadowMd,display:"flex",gap:"10px",alignItems:"center",maxWidth:"90vw"}}>
+        ⚠️ Couldn't sync your changes — check your connection
+        <button onClick={()=>setSyncError(false)} aria-label="Dismiss" style={{background:"none",border:"none",color:"#9CA3AF",cursor:"pointer",fontSize:"15px",padding:0,lineHeight:1}}>×</button>
+      </div>}
 
       <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(250,250,250,0.97)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${S.brd}`,paddingBottom:"env(safe-area-inset-bottom,8px)",display:"flex",zIndex:100,boxShadow:"0 -4px 24px rgba(0,0,0,0.06)"}}>
         <NavBtn id="home" icon="🏠" label="Home" />
