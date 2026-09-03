@@ -4,3 +4,10 @@ Thumbs.db
 *.swo
 *~
 .claude/
+
+# Operational notes / local-only project brief (contains infra + project identifiers)
+HANDOFF.md
+
+# Saved chat transcripts — never commit
+claudeFabelChat.rtfd/
+*.rtfd/
