@@ -3,11 +3,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
-.claude/
 
-# Operational notes / local-only project brief (contains infra + project identifiers)
+# Local-only operational notes (infra + project identifiers)
 HANDOFF.md
 
-# Saved chat transcripts — never commit
-claudeFabelChat.rtfd/
+# Saved editor/chat transcript bundles — never commit
 *.rtfd/
