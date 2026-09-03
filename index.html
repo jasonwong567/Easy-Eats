@@ -960,7 +960,7 @@ function App() {
     setNutLoading(true); setNutError(""); setNutResults([]); setNutSelected(null); setNutPage(1); setNutHasMore(false);
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
+        `${WORKER_URL}/api/usda/foods-search?query=${encodeURIComponent(q)}&pageNumber=1`
       );
       const data = await resp.json();
       if (reqId !== nutReqRef.current) return;
@@ -982,7 +982,7 @@ function App() {
     setNutLoadingMore(true);
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=${nextPage}&dataType=Branded`
+        `${WORKER_URL}/api/usda/foods-search?query=${encodeURIComponent(q)}&pageNumber=${nextPage}`
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -994,7 +994,8 @@ function App() {
     setNutLoadingMore(false);
   };
 
-  // Food search via USDA FoodData Central (branded foods with ingredient lists)
+  // Food search via USDA FoodData Central, proxied by the Cloudflare Worker
+  // (/api/usda/foods-search) so the API key stays server-side.
   const foodReqRef = useRef(0);
   const searchFood = async (overrideQuery) => {
     const q = (overrideQuery || foodQuery).trim();
@@ -1008,7 +1009,7 @@ function App() {
     setTxt("");
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=1&dataType=Branded`
+        `${WORKER_URL}/api/usda/foods-search?query=${encodeURIComponent(q)}&pageNumber=1`
       );
       const data = await resp.json();
       if (reqId !== foodReqRef.current) return;
@@ -1040,7 +1041,7 @@ function App() {
     setFoodLoadingMore(true);
     try {
       const resp = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&api_key=Hp9MCFJEDrHtMz1vwcGZZt2afW7mzmxYjyytbutc&pageSize=8&pageNumber=${nextPage}&dataType=Branded`
+        `${WORKER_URL}/api/usda/foods-search?query=${encodeURIComponent(q)}&pageNumber=${nextPage}`
       );
       const data = await resp.json();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
