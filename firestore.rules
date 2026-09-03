@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Easy Eats — Firestore security rules.
+//
+// users/{userId} holds health data (the user's allergen profile) and an
+// emergency contact name and phone number. It must never be readable by
+// anyone other than its owner.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in user may read and write only their own profile document.
+    // request.auth.uid is set by Firebase Auth and cannot be forged by the
+    // client, so this is what confines each account to its own document.
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Anything not matched above is denied by default. This block is stated
+    // explicitly so the intent is visible in review; note that Firestore
+    // unions allow-rules, so it does not override the grant above — it only
+    // documents that no other collection is reachable.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
